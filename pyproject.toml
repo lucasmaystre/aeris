@@ -1,0 +1,56 @@
+[project]
+name = "aeris"
+version = "0.1.0"
+description = "Jotting down notes."
+authors = [
+    {name = "Lucas Maystre", email = "lucas@maystre.ch"},
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "psycopg[binary]>=3.3.3",
+    "pydantic>=2.13.3",
+    "pydantic-settings>=2.14.0",
+    "sqlalchemy>=2.0.49",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.402",
+    "ruff>=0.11.13",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "aeris"
+module-root = ""
+
+[tool.ruff]
+line-length = 100  # Default is 88.
+
+[tool.ruff.format]
+line-ending = "lf"  # Default is "auto".
+
+[tool.ruff.lint]
+extend-select = ["W", "I"]  # Adds warnings & imports.
+
+[tool.pyright]
+deprecateTypingAliases = true
+reportDuplicateImport = true
+reportFunctionMemberAccess = "error"
+reportImportCycles = "error"
+reportIncompatibleMethodOverride = "error"
+reportInvalidStringEscapeSequence = "error"
+reportMatchNotExhaustive = "error"
+reportMissingImports = "error"
+reportPropertyTypeMismatch = "error"
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUntypedBaseClass = "error"
+strictDictionaryInference = true
+strictListInference = true
+strictSetInference = true
+reportMissingParameterType = true
