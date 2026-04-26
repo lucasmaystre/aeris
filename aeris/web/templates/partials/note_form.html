@@ -1,0 +1,27 @@
+<div class="p-6 max-w-3xl">
+
+  <h2 class="text-xl font-semibold text-midnight-violet mb-4">New note</h2>
+
+  {% if error %}
+  <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <form hx-post="/notes"
+        hx-target="#main-panel"
+        hx-swap="innerHTML">
+    <textarea name="content"
+              rows="20"
+              placeholder="Write your note here…"
+              autofocus
+              class="w-full font-mono text-sm text-midnight-violet border border-celadon rounded p-3 resize-none focus:outline-none focus:border-midnight-violet bg-white leading-relaxed"></textarea>
+    <div class="mt-3">
+      <button type="submit"
+              class="bg-dark-amaranth text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition-opacity">
+        Save note
+      </button>
+    </div>
+  </form>
+
+</div>

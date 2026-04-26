@@ -2,15 +2,15 @@ from pathlib import Path
 
 from pydantic_settings import (
     BaseSettings,
-    JsonConfigSettingsSource,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
+    YamlConfigSettingsSource,
 )
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        json_file=Path.home() / ".aeris.json",
+        yaml_file=Path.home() / ".aeris.yaml",
         extra="forbid",
     )
 
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        return (JsonConfigSettingsSource(settings_cls),)
+        return (YamlConfigSettingsSource(settings_cls),)
 
 
 settings = Settings()  # type: ignore[call-arg]  # fields are populated from ~/.aeris.json

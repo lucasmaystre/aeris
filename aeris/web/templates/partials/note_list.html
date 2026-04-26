@@ -1,0 +1,21 @@
+{% for note in notes %}
+<div class="p-3 border-b border-celadon cursor-pointer hover:bg-celadon transition-colors select-none"
+     hx-get="/notes/{{ note.id }}"
+     hx-target="#main-panel"
+     hx-swap="innerHTML">
+  <div class="text-xs text-midnight-violet opacity-50 mb-1">{{ note.created_at | elapsed }}</div>
+  <div class="text-sm text-midnight-violet opacity-50 leading-snug line-clamp-2 min-h-10">{{ note.content | excerpt }}</div>
+</div>
+{% endfor %}
+
+{% if has_more %}
+<div id="see-more-wrapper" class="p-3">
+  <button class="w-full text-sm text-dark-amaranth hover:underline"
+          hx-get="/notes?offset={{ offset }}"
+          hx-target="#note-list-container"
+          hx-swap="beforeend"
+          hx-on:htmx:after-swap="document.getElementById('see-more-wrapper').remove()">
+    See more
+  </button>
+</div>
+{% endif %}

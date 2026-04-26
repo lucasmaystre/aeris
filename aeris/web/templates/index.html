@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block sidebar %}
+<aside id="sidebar" class="w-72 flex-none bg-white border-r border-celadon flex flex-col overflow-hidden">
+
+  <div class="flex-none p-3 border-b border-celadon">
+    <button class="w-full bg-dark-amaranth text-white rounded px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity"
+            hx-get="/notes/new"
+            hx-target="#main-panel"
+            hx-swap="innerHTML">
+      Add new
+    </button>
+  </div>
+
+  <div id="note-list-container" class="flex-1 overflow-y-auto"
+       hx-get="/notes"
+       hx-trigger="load, noteCreated from:body"
+       hx-target="#note-list-container"
+       hx-swap="innerHTML">
+  </div>
+
+</aside>
+{% endblock %}
+
+{% block main %}
+<main id="main-panel" class="flex-1 overflow-y-auto bg-white">
+</main>
+{% endblock %}

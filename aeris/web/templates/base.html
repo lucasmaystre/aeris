@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>æris</title>
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js" integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-white: #fefffe;
+      --color-frozen-water: #e5fcf5;
+      --color-midnight-violet: #210124;
+      --color-dark-amaranth: #750d37;
+      --color-celadon: #b3dec1;
+      --font-sans: Helvetica, Arial, sans-serif;
+    }
+  </style>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="font-sans bg-white text-midnight-violet h-screen flex flex-col overflow-hidden">
+
+  <header class="flex-none bg-frozen-water border-b border-celadon px-6 py-3">
+    <span class="text-lg font-semibold tracking-tight">æris</span>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    {% block sidebar %}{% endblock %}
+    {% block main %}{% endblock %}
+  </div>
+
+</body>
+</html>

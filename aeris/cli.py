@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 from datetime import datetime
 
-import dateparser
+import arrow
 import typer
 from sqlalchemy.orm import Session
 
@@ -19,11 +19,11 @@ def main() -> None:
 
 
 def _parse_last(value: str) -> datetime:
-    result = dateparser.parse(f"{value} ago", settings={"RETURN_AS_TIMEZONE_AWARE": True})
-    if result is None:
+    try:
+        return arrow.now().dehumanize(f"{value} ago").datetime
+    except Exception:
         typer.echo(f"Could not parse time expression: '{value}'")
         raise typer.Exit(1)
-    return result
 
 
 @app.command()
@@ -111,6 +111,13 @@ def delete(id: int) -> None:
         session.delete(note)
         session.commit()
     typer.echo("Deleted.")
+
+
+@app.command()
+def web(port: int = typer.Option(8822, "--port")) -> None:
+    import uvicorn
+
+    uvicorn.run("aeris.web.main:app", host="127.0.0.1", port=port)
 
 
 @app.command(name="reset-db")
