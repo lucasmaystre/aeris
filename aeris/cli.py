@@ -7,14 +7,23 @@ import arrow
 import typer
 from sqlalchemy.orm import Session
 
+from aeris import __version__
 from aeris.database.engine import engine
 from aeris.database.models import Base, Note
 
 app = typer.Typer()
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(__version__)
+        raise typer.Exit()
+
+
 @app.callback()
-def main() -> None:
+def main(
+    version: bool = typer.Option(False, "--version", callback=_version_callback, is_eager=True),
+) -> None:
     pass
 
 
