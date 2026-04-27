@@ -10,12 +10,10 @@ pip install aeris
 
 ## Configuration
 
-Create `~/.aeris.json`:
+Create `~/.aeris.yaml`:
 
-```json
-{
-  "database_url": "postgresql+psycopg://user:password@localhost/aeris"
-}
+```yaml
+database_url: "postgresql+psycopg://user:password@localhost/aeris"
 ```
 
 Then initialize the database:
