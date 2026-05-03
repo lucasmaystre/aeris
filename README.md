@@ -26,8 +26,11 @@ aeris reset-db
 
 ```bash
 aeris add                        # open $EDITOR to write a note
+aeris edit <id>                  # open $EDITOR to edit an existing note
 aeris list                       # list recent notes
 aeris list --last "2 hours"      # notes from the last 2 hours
 aeris display [id]               # display note(s) in full
 aeris delete <id>                # delete a note
+aeris export [path]              # export notes to a JSONL file
+aeris web                        # launch the web interface (default port 8822)
 ```
