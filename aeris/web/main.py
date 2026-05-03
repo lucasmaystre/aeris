@@ -39,6 +39,7 @@ async def note_list(request: Request, offset: int = 0) -> HTMLResponse:
     with Session(engine) as session:
         notes = (
             session.query(Note)
+            .filter(Note.deleted == False)
             .order_by(Note.created_at.desc())
             .offset(offset)
             .limit(PAGE_SIZE)
@@ -61,7 +62,7 @@ async def new_note_form(request: Request) -> HTMLResponse:
 async def note_detail(request: Request, note_id: int, mode: str = "rendered") -> HTMLResponse:
     with Session(engine) as session:
         note = session.get(Note, note_id)
-    if note is None:
+    if note is None or note.deleted:
         return HTMLResponse("<p class='p-6 text-red-600'>Note not found.</p>", status_code=404)
     rendered_html = (
         markdown2.markdown(note.content, extras=["fenced-code-blocks", "tables", "strike"])

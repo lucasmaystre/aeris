@@ -68,7 +68,7 @@ def list_notes(
     last: str | None = typer.Option(None, "--last"),
 ) -> None:
     with Session(engine) as session:
-        query = session.query(Note).order_by(Note.created_at.asc())
+        query = session.query(Note).filter(Note.deleted == False).order_by(Note.created_at.asc())
         if last is not None:
             query = query.filter(Note.created_at >= _parse_last(last))
         notes = query.limit(limit).all()
@@ -96,12 +96,12 @@ def display(
     with Session(engine) as session:
         if id is not None:
             note = session.get(Note, id)
-            if note is None:
+            if note is None or note.deleted:
                 typer.echo(f"No note with id {id}.")
                 raise typer.Exit(1)
             notes = [note]
         else:
-            query = session.query(Note).order_by(Note.created_at.asc())
+            query = session.query(Note).filter(Note.deleted == False).order_by(Note.created_at.asc())
             if last is not None:
                 query = query.filter(Note.created_at >= _parse_last(last))
             notes = query.limit(limit).all()
@@ -123,7 +123,7 @@ def delete(id: int) -> None:
         if note is None:
             typer.echo(f"No note with id {id}.")
             raise typer.Exit(1)
-        session.delete(note)
+        note.deleted = True
         session.commit()
     typer.echo("Deleted.")
 
@@ -133,7 +133,7 @@ def export(path: Path | None = typer.Argument(None)) -> None:
     if path is None:
         path = Path(f"aeris-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.jsonl")
     with Session(engine) as session:
-        notes = session.query(Note).order_by(Note.id.asc()).all()
+        notes = session.query(Note).filter(Note.deleted == False).order_by(Note.id.asc()).all()
     with open(path, "w") as f:
         for note in notes:
             f.write(
