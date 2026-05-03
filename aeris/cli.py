@@ -62,6 +62,40 @@ def add() -> None:
     typer.echo("Note saved.")
 
 
+@app.command()
+def edit(id: int) -> None:
+    with Session(engine) as session:
+        note = session.get(Note, id)
+        if note is None or note.deleted:
+            typer.echo(f"No note with id {id}.")
+            raise typer.Exit(1)
+
+        editor = os.environ.get("EDITOR", "vi")
+        fd, path = tempfile.mkstemp(suffix=".txt")
+        try:
+            os.close(fd)
+            with open(path, "w") as f:
+                f.write(note.content)
+            subprocess.run([editor, path], check=True)
+            with open(path) as f:
+                content = f.read().strip()
+        finally:
+            os.unlink(path)
+
+        if not content:
+            typer.echo("Empty note, nothing saved.")
+            raise typer.Exit()
+
+        if content == note.content:
+            typer.echo("No changes.")
+            raise typer.Exit()
+
+        note.content = content
+        session.commit()
+
+    typer.echo("Note updated.")
+
+
 @app.command(name="list")
 def list_notes(
     limit: int = typer.Option(30, "--limit"),

@@ -19,6 +19,12 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 PAGE_SIZE = 50
 
+_MARKDOWN_EXTRAS = ["fenced-code-blocks", "tables", "strike"]
+
+
+def _render(content: str) -> str:
+    return markdown2.markdown(content, extras=_MARKDOWN_EXTRAS)
+
 
 def _excerpt(content: str) -> str:
     flat = " ".join(content.split())
@@ -58,17 +64,22 @@ async def new_note_form(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "partials/note_form.html")
 
 
+@app.get("/notes/{note_id}/edit", response_class=HTMLResponse)
+async def edit_note_form(request: Request, note_id: int) -> HTMLResponse:
+    with Session(engine) as session:
+        note = session.get(Note, note_id)
+    if note is None or note.deleted:
+        return HTMLResponse("<p class='p-6 text-red-600'>Note not found.</p>", status_code=404)
+    return templates.TemplateResponse(request, "partials/note_form.html", {"note": note})
+
+
 @app.get("/notes/{note_id}", response_class=HTMLResponse)
 async def note_detail(request: Request, note_id: int, mode: str = "rendered") -> HTMLResponse:
     with Session(engine) as session:
         note = session.get(Note, note_id)
     if note is None or note.deleted:
         return HTMLResponse("<p class='p-6 text-red-600'>Note not found.</p>", status_code=404)
-    rendered_html = (
-        markdown2.markdown(note.content, extras=["fenced-code-blocks", "tables", "strike"])
-        if mode == "rendered"
-        else None
-    )
+    rendered_html = _render(note.content) if mode == "rendered" else None
     return templates.TemplateResponse(
         request,
         "partials/note_detail.html",
@@ -96,7 +107,32 @@ async def create_note(request: Request, content: str = Form(...)) -> HTMLRespons
     response = templates.TemplateResponse(
         request,
         "partials/note_detail.html",
-        {"note": note, "rendered_html": markdown2.markdown(note.content, extras=["fenced-code-blocks", "tables", "strike"]), "mode": "rendered"},
+        {"note": note, "rendered_html": _render(note.content), "mode": "rendered"},
     )
     response.headers["HX-Trigger"] = "noteCreated"
+    return response
+
+
+@app.put("/notes/{note_id}", response_class=HTMLResponse)
+async def update_note(request: Request, note_id: int, content: str = Form(...)) -> HTMLResponse:
+    content = content.strip()
+    with Session(engine) as session:
+        note = session.get(Note, note_id)
+        if note is None or note.deleted:
+            return HTMLResponse("<p class='p-6 text-red-600'>Note not found.</p>", status_code=404)
+        if not content:
+            return templates.TemplateResponse(
+                request,
+                "partials/note_form.html",
+                {"note": note, "error": "Note content cannot be empty."},
+            )
+        note.content = content
+        session.commit()
+        session.refresh(note)
+    response = templates.TemplateResponse(
+        request,
+        "partials/note_detail.html",
+        {"note": note, "rendered_html": _render(note.content), "mode": "rendered"},
+    )
+    response.headers["HX-Trigger"] = "noteUpdated"
     return response

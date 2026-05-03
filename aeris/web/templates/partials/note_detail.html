@@ -21,6 +21,12 @@
             hx-swap="innerHTML">
       Raw
     </button>
+    <button class="text-xs px-2.5 py-1 rounded border border-celadon text-midnight-violet hover:border-midnight-violet transition-colors"
+            hx-get="/notes/{{ note.id }}/edit"
+            hx-target="#main-panel"
+            hx-swap="innerHTML">
+      Edit
+    </button>
   </div>
 
   {% if mode == "raw" %}
