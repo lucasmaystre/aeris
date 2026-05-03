@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from pydantic_settings import (
@@ -10,7 +11,7 @@ from pydantic_settings import (
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        yaml_file=Path.home() / ".aeris.yaml",
+        yaml_file=Path(os.environ.get("AERIS_CONFIG_PATH", Path.home() / ".aeris.yaml")),
         extra="forbid",
     )
 
