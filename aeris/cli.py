@@ -1,10 +1,14 @@
+import json
 import os
+import shutil
 import subprocess
 import tempfile
 from datetime import datetime
+from pathlib import Path
 
 import arrow
 import typer
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from aeris import __version__
@@ -73,10 +77,12 @@ def list_notes(
         return
 
     id_width = max(len(str(n.id)) for n in notes)
+    terminal_width = shutil.get_terminal_size().columns
+    content_limit = max(10, min(100, terminal_width - id_width - 23))
     for note in notes:
         content = note.content.replace("\n", " ")
-        if len(content) > 100:
-            content = content[:99] + "…"
+        if len(content) > content_limit:
+            content = content[:content_limit - 1] + "…"
         created = note.created_at.astimezone().strftime("%Y-%m-%d %H:%M:%S")
         typer.echo(f"{note.id:<{id_width}}  {created}  {content}")
 
@@ -123,6 +129,28 @@ def delete(id: int) -> None:
 
 
 @app.command()
+def export(path: Path | None = typer.Argument(None)) -> None:
+    if path is None:
+        path = Path(f"aeris-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.jsonl")
+    with Session(engine) as session:
+        notes = session.query(Note).order_by(Note.id.asc()).all()
+    with open(path, "w") as f:
+        for note in notes:
+            f.write(
+                json.dumps(
+                    {
+                        "id": note.id,
+                        "created_at": note.created_at.isoformat(),
+                        "updated_at": note.updated_at.isoformat(),
+                        "content": note.content,
+                    }
+                )
+                + "\n"
+            )
+    typer.echo(f"Exported {len(notes)} notes to {path}.")
+
+
+@app.command()
 def web(port: int = typer.Option(8822, "--port")) -> None:
     import uvicorn
 
@@ -130,13 +158,33 @@ def web(port: int = typer.Option(8822, "--port")) -> None:
 
 
 @app.command(name="reset-db")
-def reset_db() -> None:
+def reset_db(data: Path | None = typer.Option(None, "--data")) -> None:
+    if data is not None and not data.exists():
+        typer.echo(f"File not found: {data}")
+        raise typer.Exit(1)
     confirm = typer.prompt("Type 'reset' to confirm")
     if confirm != "reset":
         typer.echo("Aborted.")
         raise typer.Exit()
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+    if data is not None:
+        with open(data) as f:
+            records = [json.loads(line) for line in f if line.strip()]
+        with Session(engine) as session:
+            for record in records:
+                session.add(
+                    Note(
+                        id=record["id"],
+                        created_at=datetime.fromisoformat(record["created_at"]),
+                        updated_at=datetime.fromisoformat(record["updated_at"]),
+                        content=record["content"],
+                    )
+                )
+            session.flush()
+            session.execute(text("SELECT setval(pg_get_serial_sequence('note', 'id'), MAX(id)) FROM note"))
+            session.commit()
+        typer.echo(f"Loaded {len(records)} notes.")
     typer.echo("Done.")
 
 
