@@ -43,7 +43,7 @@ From the repo root. Lint `server` and `cli` only: the old `aeris/` doesn't pass.
 ```bash
 uv run pytest                        # all tests (server and cli)
 uv run pytest -m "not db"            # unit tests only: offline, no setup
-uv run ruff check server cli && uv run ruff format server cli && uv run pyright server cli
+uv run ruff check server cli conftest.py && uv run ruff format server cli conftest.py && uv run pyright server cli conftest.py
 uv run fastapi dev server/main.py    # dev server
 uv run aeris-admin migrate           # apply migrations to AERIS_DATABASE_URL
 cd server && vercel deploy --prod    # deploy (Vercel CLI; no Git integration)

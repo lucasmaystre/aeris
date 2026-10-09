@@ -1,3 +1,5 @@
+"""Shared test fixtures for `server/` and `cli/`: the test database and API tokens."""
+
 import os
 import uuid
 from collections.abc import Iterator
@@ -14,7 +16,7 @@ from aeris_server.migrate import migrate
 TEST_DATABASE_URL_VAR = "AERIS_TEST_DATABASE_URL"
 DB_FIXTURES = {"database", "empty_database"}
 
-load_dotenv(Path(__file__).parents[2] / ".env")
+load_dotenv(Path(__file__).parent / ".env")
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
