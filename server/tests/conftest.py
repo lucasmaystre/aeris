@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from sqlalchemy import URL, Engine, create_engine, make_url, text
 from sqlalchemy.pool import NullPool
 
-from aeris_server import db
+from aeris_server import auth, db
 from aeris_server.migrate import migrate
 
 TEST_DATABASE_URL_VAR = "AERIS_TEST_DATABASE_URL"
@@ -93,3 +93,13 @@ def empty_database(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     url = _direct_url()
     for schema in _schema(url):
         yield from _use(monkeypatch, _scoped(url, schema))
+
+
+@pytest.fixture
+def api_tokens(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, str]]:
+    """Configure two API tokens, `me` (rw) and `reader` (ro). Yields their secrets by scope."""
+    secrets = {"rw": "rw-test-secret-" + "x" * 24, "ro": "ro-test-secret-" + "y" * 24}
+    monkeypatch.setenv(auth.TOKENS_VAR, f"me:rw:{secrets['rw']},reader:ro:{secrets['ro']}")
+    auth.tokens.cache_clear()
+    yield secrets
+    auth.tokens.cache_clear()

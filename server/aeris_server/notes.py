@@ -75,14 +75,14 @@ def get_note(session: Session, note_id: int) -> NoteData | None:
     return _to_data(note)
 
 
-def get_notes(session: Session, ids: Sequence[int]) -> list[NoteData]:
+def get_notes(session: Session, ids: Sequence[int], *, content: bool = True) -> list[NoteData]:
     """Return several notes in the requested order, skipping missing, deleted and repeated IDs."""
     unique = list(dict.fromkeys(ids))
     if not unique:
         return []
     notes = session.scalars(select(Note).where(Note.id.in_(unique), Note.deleted.is_(False)))
     by_id = {note.id: note for note in notes}
-    return [_to_data(by_id[note_id]) for note_id in unique if note_id in by_id]
+    return [_to_data(by_id[note_id], content=content) for note_id in unique if note_id in by_id]
 
 
 def list_notes(

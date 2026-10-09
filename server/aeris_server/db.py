@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterator
 from datetime import datetime
 from functools import cache
 
@@ -34,6 +35,12 @@ def engine() -> Engine:
 
 def session() -> Session:
     return Session(engine())
+
+
+def get_session() -> Iterator[Session]:
+    """FastAPI dependency: one session per request."""
+    with session() as s:
+        yield s
 
 
 class Base(DeclarativeBase):

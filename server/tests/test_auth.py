@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from typing import Annotated
 
 import pytest
@@ -8,16 +7,11 @@ from fastapi.testclient import TestClient
 from aeris_server import auth
 from aeris_server.auth import COOKIE_NAME, TOKENS_VAR, Token, authenticate, parse_tokens
 
-RW = "rw-secret-" + "x" * 30
-RO = "ro-secret-" + "y" * 30
+# Must match the secrets of the `api_tokens` fixture.
+RW = "rw-test-secret-" + "x" * 24
+RO = "ro-test-secret-" + "y" * 24
 
-
-@pytest.fixture(autouse=True)
-def configured_tokens(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv(TOKENS_VAR, f"me:rw:{RW}, reader:ro:{RO}")
-    auth.tokens.cache_clear()
-    yield
-    auth.tokens.cache_clear()
+pytestmark = pytest.mark.usefixtures("api_tokens")
 
 
 app = FastAPI()
