@@ -5,11 +5,11 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy import Select, func, or_, select
+from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from aeris_server.db import Note, NoteRevision
-from aeris_server.parsing import extract_tags, title
+from aeris_server.parsing import extract_tags, normalize, snippet, title
 
 Order = Literal["created", "updated"]
 
@@ -26,6 +26,18 @@ class NoteData(BaseModel):
     deleted: bool
 
 
+class SearchHit(BaseModel):
+    """A search result: enough to pick notes, without their full content."""
+
+    id: int
+    title: str
+    tags: list[str]
+    created_at: datetime
+    updated_at: datetime
+    snippet: str
+    score: float | None  # Semantic search only.
+
+
 class NoteNotFound(Exception):
     def __init__(self, note_id: int) -> None:
         super().__init__(f"No note with id {note_id}.")
@@ -35,6 +47,11 @@ class NoteNotFound(Exception):
 class EmptyContent(ValueError):
     def __init__(self) -> None:
         super().__init__("Note content cannot be empty.")
+
+
+class EmptyQuery(ValueError):
+    def __init__(self) -> None:
+        super().__init__("Search query cannot be empty.")
 
 
 class StaleNote(Exception):
@@ -77,21 +94,41 @@ def list_notes(
     `since` filters on the same timestamp as `order`. `tag` also matches child tags: `project`
     matches `project/aeris`.
     """
-    column = Note.created_at if order == "created" else Note.updated_at
-    query = select(Note).where(Note.deleted.is_(False)).order_by(column.desc(), Note.id.desc())
+    query = _live_notes(order, tag)
     if since is not None:
-        query = query.where(column >= since)
-    if tag is not None:
-        tag = tag.removeprefix("#").lower()
-        element = func.unnest(Note.tags).column_valued("tag")
-        query = query.where(
-            select(element)
-            .where(or_(element == tag, func.starts_with(element, tag + "/")))
-            .exists()
-        )
+        query = query.where(_timestamp(order) >= since)
     if limit is not None:
         query = query.limit(limit)
     return [_to_data(note, content=content) for note in session.scalars(query)]
+
+
+def search_notes(
+    session: Session, query: str, *, tag: str | None = None, limit: int | None = None
+) -> list[SearchHit]:
+    """Find notes containing `query` as a phrase, ignoring case, accents and whitespace runs.
+
+    Newest first. Matches the web UI's in-browser search exactly, since both use `normalize`.
+    """
+    needle = normalize(query).strip()
+    if not needle:
+        raise EmptyQuery()
+    hits: list[SearchHit] = []
+    for note in session.scalars(_live_notes("created", tag)):
+        if limit is not None and len(hits) >= limit:
+            break
+        if needle in normalize(note.content):
+            hits.append(
+                SearchHit(
+                    id=note.id,
+                    title=title(note.content),
+                    tags=note.tags,
+                    created_at=note.created_at,
+                    updated_at=note.updated_at,
+                    snippet=snippet(note.content, query),
+                    score=None,
+                )
+            )
+    return hits
 
 
 def create_note(session: Session, content: str) -> NoteData:
@@ -152,6 +189,25 @@ def recompute_tags(session: Session) -> int:
             changed += 1
     session.commit()
     return changed
+
+
+def _timestamp(order: Order) -> InstrumentedAttribute[datetime]:
+    return Note.created_at if order == "created" else Note.updated_at
+
+
+def _live_notes(order: Order, tag: str | None) -> Select[tuple[Note]]:
+    """Non-deleted notes, newest first, optionally with a tag or one of its children."""
+    timestamp = _timestamp(order)
+    query = select(Note).where(Note.deleted.is_(False)).order_by(timestamp.desc(), Note.id.desc())
+    if tag is not None:
+        tag = tag.removeprefix("#").lower()
+        element = func.unnest(Note.tags).column_valued("tag")
+        query = query.where(
+            select(element)
+            .where(or_(element == tag, func.starts_with(element, tag + "/")))
+            .exists()
+        )
+    return query
 
 
 def _clean(content: str) -> str:

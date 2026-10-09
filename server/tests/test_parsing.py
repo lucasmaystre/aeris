@@ -1,6 +1,13 @@
 import pytest
 
-from aeris_server.parsing import TITLE_MAX_LENGTH, extract_tags, normalize, title
+from aeris_server.parsing import (
+    SNIPPET_LENGTH,
+    TITLE_MAX_LENGTH,
+    extract_tags,
+    normalize,
+    snippet,
+    title,
+)
 
 
 @pytest.mark.parametrize(
@@ -123,3 +130,51 @@ def test_title_truncates_long_word() -> None:
 def test_title_keeps_exact_length() -> None:
     content = "y" * TITLE_MAX_LENGTH
     assert title(content) == content
+
+
+def test_snippet_short_content_is_whole() -> None:
+    assert snippet("A short\n\nnote.", "short") == "A short note."
+
+
+def test_snippet_cuts_around_match() -> None:
+    content = (
+        " ".join(f"w{i}" for i in range(200)) + " needle " + " ".join(f"v{i}" for i in range(200))
+    )
+    result = snippet(content, "needle")
+    assert result.startswith("…w")
+    assert result.endswith("…")
+    assert " needle " in result
+    assert len(result) <= SNIPPET_LENGTH + 2
+    # Cut at word boundaries: no partial words at either end.
+    assert result.split()[0].removeprefix("…") in content.split()
+    assert result.split()[-1].removesuffix("…") in content.split()
+
+
+def test_snippet_match_at_start() -> None:
+    content = "needle " + "word " * 100
+    result = snippet(content, "needle")
+    assert result.startswith("needle word")
+    assert result.endswith("…")
+
+
+def test_snippet_shows_original_text() -> None:
+    content = "x " * 100 + "Un Été très chaud" + " y" * 100
+    assert "Un Été très" in snippet(content, "ete TRES")
+
+
+def test_snippet_matches_across_line_break() -> None:
+    content = "x " * 100 + "distributed\n   systems" + " y" * 100
+    assert "distributed systems" in snippet(content, "distributed systems")
+
+
+def test_snippet_maps_positions_after_expanding_characters() -> None:
+    # Each `ﬁ` becomes two characters when normalized; the window must still find the original.
+    content = "ﬁ" * 300 + " target " + "x" * 300
+    assert "target" in snippet(content, "target")
+
+
+def test_snippet_without_match_shows_start() -> None:
+    content = "Beginning " + "word " * 100
+    result = snippet(content, "absent")
+    assert result.startswith("Beginning word")
+    assert result.endswith("…")

@@ -9,6 +9,7 @@ from aeris_server.admin import main
 from aeris_server.db import Note, NoteRevision
 from aeris_server.notes import (
     EmptyContent,
+    EmptyQuery,
     NoteNotFound,
     StaleNote,
     append_note,
@@ -18,6 +19,7 @@ from aeris_server.notes import (
     get_notes,
     list_notes,
     recompute_tags,
+    search_notes,
     update_note,
 )
 
@@ -130,6 +132,45 @@ def test_list_notes_without_content() -> None:
         [note] = list_notes(session, content=False)
     assert note.content is None
     assert note.title == "Title"
+
+
+# Search.
+
+
+def _search(query: str, **kwargs: Any) -> list[int]:
+    with db.session() as session:
+        return [hit.id for hit in search_notes(session, query, **kwargs)]
+
+
+@pytest.mark.usefixtures("database")
+def test_search_notes() -> None:
+    older = _add("Notes on DISTRIBUTED\n  systems", created=0)
+    newer = _add("Un été: distributed systems again", tags=["work"], created=1)
+    _add("Distributed, but not that kind of systems", created=2)
+    _add("distributed systems, deleted", created=3, deleted=True)
+
+    assert _search("distributed systems") == [newer, older]
+    assert _search("  Distributed   Systems ") == [newer, older]
+    assert _search("ETE") == [newer]
+    assert _search("distributed systems", tag="work") == [newer]
+    assert _search("distributed systems", limit=1) == [newer]
+    assert _search("absent") == []
+
+
+@pytest.mark.usefixtures("database")
+def test_search_hit_shape() -> None:
+    note_id = _add("# Trip\n\nWe went to the sea in été.", tags=["travel"])
+    with db.session() as session:
+        [hit] = search_notes(session, "ete")
+    assert (hit.id, hit.title, hit.tags) == (note_id, "Trip", ["travel"])
+    assert hit.snippet == "# Trip We went to the sea in été."
+    assert hit.score is None
+
+
+@pytest.mark.usefixtures("database")
+def test_search_empty_query() -> None:
+    with db.session() as session, pytest.raises(EmptyQuery):
+        search_notes(session, " \u0301 ")
 
 
 # Writes.

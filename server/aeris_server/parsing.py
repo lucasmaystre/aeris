@@ -6,6 +6,7 @@ _TAGS_LINE = re.compile(r"^\s*tags:(.*)$", re.IGNORECASE | re.MULTILINE)
 _TAG = re.compile(r"#([^\W\d_][\w/-]*)")
 
 TITLE_MAX_LENGTH = 80
+SNIPPET_LENGTH = 160
 _PLACEHOLDER_BASE = 0xE000  # Unicode private use area, for protecting escaped characters.
 _ESCAPED = re.compile(r"\\([!-/:-@\[-`{-~])")
 _PLACEHOLDER = re.compile("[\ue000-\uf8ff]")
@@ -32,9 +33,12 @@ def normalize(text: str) -> str:
     Steps: decompose (NFKD), drop combining marks, lowercase, collapse whitespace runs to one space.
     Decomposing before lowercasing means `İ` becomes `i` rather than `i` plus a combining dot.
     """
+    return _WHITESPACE.sub(" ", _strip_marks(text).lower())
+
+
+def _strip_marks(text: str) -> str:
     decomposed = unicodedata.normalize("NFKD", text)
-    stripped = "".join(c for c in decomposed if not unicodedata.category(c).startswith("M"))
-    return _WHITESPACE.sub(" ", stripped.lower())
+    return "".join(c for c in decomposed if not unicodedata.category(c).startswith("M"))
 
 
 def extract_tags(content: str) -> list[str]:
@@ -45,6 +49,49 @@ def extract_tags(content: str) -> list[str]:
     """
     tags = {tag.lower() for line in _TAGS_LINE.findall(content) for tag in _TAG.findall(line)}
     return sorted(tags)
+
+
+def snippet(content: str, query: str) -> str:
+    """Show the original text around the first match of `query`, about SNIPPET_LENGTH long.
+
+    Matching uses `normalize`, so `ete` finds `Été`, but the snippet shows the original text. Without
+    a match, shows the start of the content.
+    """
+    needle = normalize(query).strip()
+    normalized, origins = _normalize_with_origins(content)
+    index = normalized.find(needle) if needle else -1
+    if index < 0:
+        return _excerpt(content, 0, 0)
+    return _excerpt(content, origins[index], origins[index + len(needle) - 1] + 1)
+
+
+def _normalize_with_origins(text: str) -> tuple[str, list[int]]:
+    """Like `normalize`, character by character, recording each output character's source index."""
+    chars: list[str] = []
+    origins: list[int] = []
+    for i, original in enumerate(text):
+        for char in _strip_marks(original).lower():
+            if char.isspace():
+                if chars and chars[-1] == " ":
+                    continue
+                char = " "
+            chars.append(char)
+            origins.append(i)
+    return "".join(chars), origins
+
+
+def _excerpt(content: str, start: int, end: int) -> str:
+    """Cut a window of about SNIPPET_LENGTH around content[start:end], at word boundaries."""
+    length = max(SNIPPET_LENGTH, end - start)
+    lo = max(0, start - (length - (end - start)) // 2)
+    hi = min(len(content), lo + length)
+    lo = max(0, hi - length)
+    if lo > 0 and (space := _WHITESPACE.search(content, lo, start)):
+        lo = space.end()
+    if hi < len(content) and (spaces := list(_WHITESPACE.finditer(content, end, hi))):
+        hi = spaces[-1].start()
+    text = _WHITESPACE.sub(" ", content[lo:hi]).strip()
+    return ("…" if lo > 0 else "") + text + ("…" if hi < len(content) else "")
 
 
 def title(content: str) -> str:
