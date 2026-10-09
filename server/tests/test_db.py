@@ -25,7 +25,7 @@ def test_database_url_missing(monkeypatch: pytest.MonkeyPatch) -> None:
         db.database_url()
 
 
-@pytest.mark.usefixtures("database")
+@pytest.mark.usefixtures("empty_database")
 def test_connect() -> None:
     with db.session() as session:
         assert session.execute(text("SELECT 1")).scalar_one() == 1

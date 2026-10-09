@@ -58,19 +58,26 @@ uv run fastapi dev server/main.py        # dev server on http://127.0.0.1:8000
 Lint and format `server` only: the old `aeris/` package doesn't pass. Pyright may warn that a newer
 version exists; that warning is harmless.
 
+Deploy (production, via the Vercel CLI; there is no Git integration):
+
+```bash
+cd server && vercel deploy --prod
+```
+
 ## Environment and databases
 
 - The server reads `AERIS_DATABASE_URL`. Neon's `postgresql://…` strings work as-is; use the
   pooled one (host contains `-pooler`).
 - Local secrets go in the root `.env` (gitignored); tests load it. Never print or commit its values.
 - `AERIS_TEST_DATABASE_URL` points at the Neon branch `test` (schema-only, no real notes). Tests
-  that need Postgres use the `database` fixture, which skips them when the variable is unset.
+  that need Postgres use the `database` fixture (a fresh schema with migrations applied, dropped
+  afterwards) or `empty_database` (no migrations). Both skip when the variable is unset.
 
-Deploy (production, via the Vercel CLI; there is no Git integration):
+## Migrations
 
-```bash
-cd server && vercel deploy --prod
-```
+- Numbered plain-SQL files in `server/migrations/` (`NNN_name.sql`), applied in order by
+  `uv run aeris-admin migrate` against `AERIS_DATABASE_URL`, recorded in `schema_migrations`.
+- Each file runs in one transaction. Never edit a migration that has run on production; add a new one.
 
 ## Gotchas
 
