@@ -32,7 +32,7 @@ Phase 3 adds htmx 2, Tailwind CSS v4 (CSS-first `@theme`, no `tailwind.config.js
 - `server/pyproject.toml` lists runtime dependencies only (it's bundled for Vercel); dev tools go
   in the root `dev` group.
 - Migrations are numbered SQL files in `server/migrations/`. Never edit one that has run on
-  production; add a new one.
+  production; add a new one. They run as `neondb_owner`; the server runs as `agent` (rows only).
 
 ## Commands
 
