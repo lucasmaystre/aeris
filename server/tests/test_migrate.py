@@ -28,7 +28,7 @@ def _versions() -> list[str]:
 @pytest.mark.usefixtures("empty_database")
 def test_migrate_empty_database() -> None:
     assert migrate(db.engine()) == ALL_VERSIONS
-    assert _tables() == {"note", "note_revision", "schema_migrations"}
+    assert _tables() == {"note", "note_embedding", "note_revision", "schema_migrations"}
     assert _versions() == ALL_VERSIONS
 
 
@@ -89,3 +89,33 @@ def test_tags_default_to_empty() -> None:
 def test_revision_requires_existing_note() -> None:
     with pytest.raises(IntegrityError), db.engine().begin() as connection:
         connection.execute(text("INSERT INTO note_revision (note_id, content) VALUES (42, 'x')"))
+
+
+@pytest.mark.usefixtures("database")
+def test_embedding_table() -> None:
+    with db.engine().begin() as connection:
+        note_id = connection.execute(
+            text("INSERT INTO note (content) VALUES ('x') RETURNING id")
+        ).scalar_one()
+        connection.execute(
+            text(
+                "INSERT INTO note_embedding (note_id, model, content_hash, embedding)"
+                " VALUES (:id, 'test-model', 'abc', '[1, 0, 0]')"
+            ),
+            {"id": note_id},
+        )
+        distance = connection.execute(
+            text("SELECT embedding <=> '[0, 1, 0]' FROM note_embedding")
+        ).scalar_one()
+        assert distance == pytest.approx(1.0)
+
+
+@pytest.mark.usefixtures("database")
+def test_embedding_requires_existing_note() -> None:
+    with pytest.raises(IntegrityError), db.engine().begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO note_embedding (note_id, model, content_hash, embedding)"
+                " VALUES (42, 'test-model', 'abc', '[1]')"
+            )
+        )
