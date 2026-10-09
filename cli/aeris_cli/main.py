@@ -26,6 +26,7 @@ MessageOption = Annotated[
     str | None,
     typer.Option("--message", "-m", help="The text. Otherwise read from stdin or your editor."),
 ]
+CONFLICT = 409
 NO_TEXT = "No text to save: pass -m TEXT, pipe text in, or run in a terminal to use your editor."
 
 _DURATION = re.compile(r"\s*(\d+)\s*(m|mins?|minutes?|h|hours?|d|days?|w|weeks?)\s*", re.IGNORECASE)
@@ -167,6 +168,41 @@ def append(
 
 
 @app.command()
+def edit(
+    note_id: Annotated[int, typer.Argument(help="The note to edit.")],
+    stdin: Annotated[
+        bool, typer.Option("--stdin", help="Read the new content from stdin, not your editor.")
+    ] = False,
+    expected_updated_at: Annotated[
+        str | None,
+        typer.Option(
+            help="With --stdin: fail if the note changed after this time (its updated_at)."
+        ),
+    ] = None,
+    json_output: JsonOption = False,
+) -> None:
+    """Replace a note's content, in your editor or from stdin."""
+    if expected_updated_at is not None and not stdin:
+        raise typer.BadParameter("only with --stdin.", param_hint="--expected-updated-at")
+    if stdin:
+        content = sys.stdin.read()
+        if not content.strip():
+            typer.echo("Error: No text to save: pipe the new content in.", err=True)
+            raise typer.Exit(1)
+        with _errors():
+            note = make_client().update_note(note_id, content, expected_updated_at)
+    else:
+        if not _interactive():
+            typer.echo("Error: Not in a terminal: use --stdin to pass the new content.", err=True)
+            raise typer.Exit(1)
+        note = _edit_in_editor(note_id)
+    if json_output:
+        _print_json(note)
+    else:
+        typer.echo(f"Updated note {note_id}.")
+
+
+@app.command()
 def delete(note_id: Annotated[int, typer.Argument(help="The note to delete.")]) -> None:
     """Delete a note."""
     with _errors():
@@ -187,6 +223,43 @@ def edit_in_editor(initial: str = "") -> str:
         os.unlink(path)
 
 
+def _edit_in_editor(note_id: int) -> dict[str, Any]:
+    """Edit a note's current content in the editor and save it, guarding against conflicts."""
+    client = make_client()
+    with _errors():
+        current = client.get_note(note_id)
+    content = _run_editor(current["content"])
+    if not content.strip():
+        typer.echo("Empty note, nothing saved.")
+        raise typer.Exit(0)
+    if content.strip() == current["content"].strip():
+        typer.echo("No changes.")
+        raise typer.Exit(0)
+    try:
+        return client.update_note(note_id, content, current["updated_at"])
+    except AerisError as error:
+        if error.status != CONFLICT:
+            typer.echo(f"Error: {error}", err=True)
+            raise typer.Exit(1) from error
+        fd, draft = tempfile.mkstemp(prefix=f"aeris-note-{note_id}-", suffix=".md")
+        with os.fdopen(fd, "w") as file:
+            file.write(content)
+        typer.echo(
+            f"Error: Note {note_id} changed while you were editing; nothing saved. "
+            f"Your text is in {draft}",
+            err=True,
+        )
+        raise typer.Exit(1) from error
+
+
+def _run_editor(initial: str = "") -> str:
+    try:
+        return edit_in_editor(initial)
+    except (OSError, subprocess.CalledProcessError) as error:
+        typer.echo(f"Error: the editor failed ({error}); nothing saved.", err=True)
+        raise typer.Exit(1) from error
+
+
 def _interactive() -> bool:
     return sys.stdin.isatty()
 
@@ -202,11 +275,7 @@ def _input_text(message: str | None) -> str:
     elif not _interactive():
         text = sys.stdin.read()
     else:
-        try:
-            text = edit_in_editor()
-        except (OSError, subprocess.CalledProcessError) as error:
-            typer.echo(f"Error: the editor failed ({error}); nothing saved.", err=True)
-            raise typer.Exit(1) from error
+        text = _run_editor()
         if not text.strip():
             typer.echo("Empty note, nothing saved.")
             raise typer.Exit(0)

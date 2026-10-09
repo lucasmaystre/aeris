@@ -287,10 +287,12 @@ def editor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Pretend to be in a terminal, with an "editor" that writes the contents of a file."""
     text_file = tmp_path / "typed.txt"
     script = tmp_path / "editor.py"
+    # `{current}` in the typed text stands for what the file held when the editor opened.
     script.write_text(
         "import pathlib, sys\n"
+        "path = pathlib.Path(sys.argv[-1])\n"
         f"typed = pathlib.Path({str(text_file)!r}).read_text()\n"
-        "pathlib.Path(sys.argv[-1]).write_text(typed)\n"
+        "path.write_text(typed.replace('{current}', path.read_text()))\n"
     )
     monkeypatch.setattr(main, "_interactive", lambda: True)
     monkeypatch.delenv("VISUAL", raising=False)
@@ -387,6 +389,107 @@ def test_delete_missing_note(server: FakeServer) -> None:
     server.status, server.body = 404, {"detail": "No note with id 99."}
     result = runner.invoke(app, ["delete", "99"])
     assert (result.exit_code, result.stderr) == (1, "Error: No note with id 99. (HTTP 404)\n")
+
+
+# edit.
+
+
+EDITED_7 = {
+    **NOTE_7,
+    "content": "# Seven\n\nBody of seven, edited.",
+    "updated_at": "2026-10-10T08:00:00Z",
+}
+
+
+def test_edit_in_editor(server: FakeServer, editor: Path) -> None:
+    editor.write_text("{current}, edited.")
+    server.queue = [(200, NOTE_7), (200, EDITED_7)]
+    result = runner.invoke(app, ["edit", "7"])
+    assert (result.exit_code, result.stdout) == (0, "Updated note 7.\n")
+    assert [(r.method, r.url.path) for r in server.requests] == [
+        ("GET", "/api/notes/7"),
+        ("PUT", "/api/notes/7"),
+    ]
+    assert server.sent[2] == {
+        "content": "# Seven\n\nBody of seven., edited.",
+        "expected_updated_at": NOTE_7["updated_at"],
+    }
+
+
+@pytest.mark.parametrize(
+    ("typed", "message"),
+    [("{current}\n\n", "No changes.\n"), ("  \n", "Empty note, nothing saved.\n")],
+)
+def test_edit_nothing_to_save(server: FakeServer, editor: Path, typed: str, message: str) -> None:
+    editor.write_text(typed)
+    server.body = NOTE_7
+    result = runner.invoke(app, ["edit", "7"])
+    assert (result.exit_code, result.stdout) == (0, message)
+    assert [r.method for r in server.requests] == ["GET"]
+
+
+def test_edit_conflict_keeps_draft(server: FakeServer, editor: Path) -> None:
+    editor.write_text("My careful rewrite.")
+    server.queue = [
+        (200, NOTE_7),
+        (409, {"detail": "Note 7 was changed at …", "current": EDITED_7}),
+    ]
+    result = runner.invoke(app, ["edit", "7"])
+    assert result.exit_code == 1
+    prefix = "Error: Note 7 changed while you were editing; nothing saved. Your text is in "
+    assert result.stderr.startswith(prefix)
+    draft = Path(result.stderr.removeprefix(prefix).strip())
+    assert draft.read_text() == "My careful rewrite."
+    draft.unlink()
+
+
+def test_edit_missing_note(server: FakeServer, editor: Path) -> None:
+    server.status, server.body = 404, {"detail": "No note with id 99."}
+    result = runner.invoke(app, ["edit", "99"])
+    assert (result.exit_code, result.stderr) == (1, "Error: No note with id 99. (HTTP 404)\n")
+
+
+def test_edit_needs_terminal_or_stdin(server: FakeServer) -> None:
+    result = runner.invoke(app, ["edit", "7"])
+    assert result.exit_code == 1
+    assert result.stderr == "Error: Not in a terminal: use --stdin to pass the new content.\n"
+    assert server.requests == []
+
+
+def test_edit_stdin(server: FakeServer) -> None:
+    server.body = EDITED_7
+    result = runner.invoke(app, ["edit", "7", "--stdin"], input="New content\n")
+    assert (result.exit_code, result.stdout) == (0, "Updated note 7.\n")
+    assert server.sent == ("PUT", "/api/notes/7", {"content": "New content\n"})
+
+
+def test_edit_stdin_expected_updated_at(server: FakeServer) -> None:
+    server.body = EDITED_7
+    args = ["edit", "7", "--stdin", "--expected-updated-at", NOTE_7["updated_at"], "--json"]
+    result = runner.invoke(app, args, input="New")
+    assert json.loads(result.stdout) == EDITED_7
+    assert server.sent[2] == {"content": "New", "expected_updated_at": NOTE_7["updated_at"]}
+
+
+def test_edit_stdin_conflict(server: FakeServer) -> None:
+    server.status, server.body = 409, {"detail": "Note 7 was changed at x.", "current": EDITED_7}
+    result = runner.invoke(app, ["edit", "7", "--stdin", "--expected-updated-at", "x"], input="New")
+    assert (result.exit_code, result.stderr) == (1, "Error: Note 7 was changed at x. (HTTP 409)\n")
+
+
+def test_edit_stdin_empty(server: FakeServer) -> None:
+    result = runner.invoke(app, ["edit", "7", "--stdin"], input=" ")
+    assert (result.exit_code, result.stderr) == (
+        1,
+        "Error: No text to save: pipe the new content in.\n",
+    )
+    assert server.requests == []
+
+
+def test_edit_expected_updated_at_needs_stdin(server: FakeServer) -> None:
+    result = runner.invoke(app, ["edit", "7", "--expected-updated-at", "x"])
+    assert result.exit_code == 2
+    assert server.requests == []
 
 
 # Errors.

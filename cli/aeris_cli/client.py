@@ -60,6 +60,18 @@ class Client:
         """Every tag in use, alphabetically, with note counts."""
         return self._get("/api/tags", {})
 
+    def get_note(self, note_id: int) -> dict[str, Any]:
+        return self._request("GET", f"/api/notes/{note_id}")
+
+    def update_note(
+        self, note_id: int, content: str, expected_updated_at: str | None = None
+    ) -> dict[str, Any]:
+        """Replace a note's content. With `expected_updated_at`, fails (409) if it changed since."""
+        body: dict[str, Any] = {"content": content}
+        if expected_updated_at is not None:
+            body["expected_updated_at"] = expected_updated_at
+        return self._request("PUT", f"/api/notes/{note_id}", json=body)
+
     def create_note(self, content: str) -> dict[str, Any]:
         return self._request("POST", "/api/notes", json={"content": content})
 
