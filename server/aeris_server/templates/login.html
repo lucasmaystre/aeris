@@ -8,9 +8,10 @@
     <div class="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded">{{ error }}</div>
     {% endif %}
     <label class="block text-sm">
-      Token
+      Secret
       <input type="password" name="token" required autofocus autocomplete="current-password"
              class="mt-1 w-full font-mono text-sm border border-celadon rounded p-2 bg-white focus:outline-none focus:border-midnight-violet">
+      <span class="mt-1 block text-xs opacity-50">Only the secret part of your token, without <code>name:rw:</code>.</span>
     </label>
     <button type="submit"
             class="w-full bg-dark-amaranth text-white rounded px-3 py-2 text-sm font-medium hover:opacity-90 transition-opacity">
