@@ -1,22 +1,24 @@
 """JSON API for the CLI and agents. Thin wrappers around the service layer."""
 
 from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from aeris_server import notes
-from aeris_server.auth import require_read
+from aeris_server.auth import require_read, require_write
 from aeris_server.db import get_session
 from aeris_server.notes import NoteData, Order, SearchHit, TagCount
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_read)])
 
 SessionDep = Annotated[Session, Depends(get_session)]
+WRITE = [Depends(require_write)]
 
 
 class NoteList(BaseModel):
@@ -30,6 +32,30 @@ class SearchResults(BaseModel):
 
 class TagList(BaseModel):
     tags: list[TagCount]
+
+
+class NewNote(BaseModel):
+    content: str
+
+
+class NoteEdit(BaseModel):
+    content: str
+    expected_updated_at: datetime | None = None  # Rejects the edit (409) if the note changed since.
+
+
+class NoteAppend(BaseModel):
+    text: str
+
+
+@contextmanager
+def _service_errors() -> Iterator[None]:
+    """Turn service-layer errors into HTTP errors."""
+    try:
+        yield
+    except notes.NoteNotFound as error:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(error)) from error
+    except (notes.EmptyContent, notes.EmptyQuery) as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
 
 
 @router.get("/notes")
@@ -72,10 +98,8 @@ def search(
     limit: Annotated[int | None, Query(ge=1)] = None,
 ) -> SearchResults:
     """Substring search, ignoring case and accents. Semantic mode arrives in phase 4."""
-    try:
+    with _service_errors():
         return SearchResults(hits=notes.search_notes(session, q, tag=tag, limit=limit))
-    except notes.EmptyQuery as error:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
 
 
 @router.get("/tags")
@@ -93,3 +117,37 @@ def export(session: SessionDep) -> StreamingResponse:
             yield note.model_dump_json() + "\n"
 
     return StreamingResponse(lines(), media_type="application/x-ndjson")
+
+
+@router.post("/notes", dependencies=WRITE, status_code=status.HTTP_201_CREATED)
+def create_note(session: SessionDep, body: NewNote, response: Response) -> NoteData:
+    with _service_errors():
+        note = notes.create_note(session, body.content)
+    response.headers["Location"] = f"/api/notes/{note.id}"
+    return note
+
+
+@router.put("/notes/{note_id}", dependencies=WRITE, response_model=NoteData)
+def update_note(session: SessionDep, note_id: int, body: NoteEdit) -> NoteData | JSONResponse:
+    """Replace a note's content. A stale `expected_updated_at` gives 409 with the `current` note."""
+    with _service_errors():
+        try:
+            return notes.update_note(session, note_id, body.content, body.expected_updated_at)
+        except notes.StaleNote as error:
+            return JSONResponse(
+                {"detail": str(error), "current": error.current.model_dump(mode="json")},
+                status_code=status.HTTP_409_CONFLICT,
+            )
+
+
+@router.post("/notes/{note_id}/append", dependencies=WRITE)
+def append_note(session: SessionDep, note_id: int, body: NoteAppend) -> NoteData:
+    """Add text to the end of a note as a new paragraph. Safe for agents: never conflicts."""
+    with _service_errors():
+        return notes.append_note(session, note_id, body.text)
+
+
+@router.delete("/notes/{note_id}", dependencies=WRITE, status_code=status.HTTP_204_NO_CONTENT)
+def delete_note(session: SessionDep, note_id: int) -> None:
+    with _service_errors():
+        notes.delete_note(session, note_id)

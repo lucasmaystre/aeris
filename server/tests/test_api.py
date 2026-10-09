@@ -99,3 +99,89 @@ def test_export(client: TestClient) -> None:
     assert response.headers["content-type"] == "application/x-ndjson"
     lines = [json.loads(line) for line in response.text.splitlines()]
     assert [(n["id"], n["deleted"]) for n in lines] == [(kept, False), (gone, True)]
+
+
+# Writes.
+
+
+@pytest.fixture
+def writer(database: None, api_tokens: dict[str, str]) -> TestClient:
+    return TestClient(app, headers={"Authorization": f"Bearer {api_tokens['rw']}"})
+
+
+WRITES = [
+    ("POST", "/api/notes", {"content": "x"}),
+    ("PUT", "/api/notes/1", {"content": "x"}),
+    ("POST", "/api/notes/1/append", {"text": "x"}),
+    ("DELETE", "/api/notes/1", None),
+]
+
+
+@pytest.mark.parametrize(("method", "path", "body"), WRITES)
+def test_writes_require_rw(
+    method: str, path: str, body: dict[str, str] | None, api_tokens: dict[str, str]
+) -> None:
+    assert TestClient(app).request(method, path, json=body).status_code == 401
+    reader = TestClient(app, headers={"Authorization": f"Bearer {api_tokens['ro']}"})
+    assert reader.request(method, path, json=body).status_code == 403
+
+
+def test_create_note(writer: TestClient) -> None:
+    response = writer.post("/api/notes", json={"content": "  # New\n\nTags: #x  "})
+    assert response.status_code == 201
+    note = response.json()
+    assert response.headers["location"] == f"/api/notes/{note['id']}"
+    assert (note["title"], note["tags"], note["content"]) == ("New", ["x"], "# New\n\nTags: #x")
+    assert writer.get(response.headers["location"]).json() == note
+
+
+def test_create_note_invalid(writer: TestClient) -> None:
+    assert writer.post("/api/notes", json={"content": " "}).status_code == 422
+    assert writer.post("/api/notes", json={}).status_code == 422
+
+
+def test_update_note_round_trip(writer: TestClient) -> None:
+    created = writer.post("/api/notes", json={"content": "v1"}).json()
+    # The timestamp from a response must work as `expected_updated_at`, to the microsecond.
+    body = {"content": "v2", "expected_updated_at": created["updated_at"]}
+    response = writer.put(f"/api/notes/{created['id']}", json=body)
+    assert response.status_code == 200
+    assert response.json()["content"] == "v2"
+    assert response.json()["updated_at"] != created["updated_at"]
+
+
+def test_update_note_stale(writer: TestClient) -> None:
+    created = writer.post("/api/notes", json={"content": "v1"}).json()
+    path = f"/api/notes/{created['id']}"
+    writer.put(path, json={"content": "v2"})
+    response = writer.put(
+        path, json={"content": "v3", "expected_updated_at": created["updated_at"]}
+    )
+    assert response.status_code == 409
+    assert response.json()["current"]["content"] == "v2"
+    assert response.json()["detail"].startswith(f"Note {created['id']} was changed at ")
+    assert writer.get(path).json()["content"] == "v2"
+
+
+def test_update_note_errors(writer: TestClient) -> None:
+    assert writer.put("/api/notes/999", json={"content": "x"}).status_code == 404
+    created = writer.post("/api/notes", json={"content": "v1"}).json()
+    assert writer.put(f"/api/notes/{created['id']}", json={"content": ""}).status_code == 422
+
+
+def test_append_note(writer: TestClient) -> None:
+    created = writer.post("/api/notes", json={"content": "Start"}).json()
+    path = f"/api/notes/{created['id']}/append"
+    response = writer.post(path, json={"text": "More"})
+    assert (response.status_code, response.json()["content"]) == (200, "Start\n\nMore")
+    assert writer.post(path, json={"text": " "}).status_code == 422
+    assert writer.post("/api/notes/999/append", json={"text": "x"}).status_code == 404
+
+
+def test_delete_note(writer: TestClient) -> None:
+    created = writer.post("/api/notes", json={"content": "Doomed"}).json()
+    path = f"/api/notes/{created['id']}"
+    response = writer.delete(path)
+    assert (response.status_code, response.content) == (204, b"")
+    assert writer.get(path).status_code == 404
+    assert writer.delete(path).status_code == 404
