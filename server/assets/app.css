@@ -1,0 +1,51 @@
+/* Source for server/static/app.css: rebuild with scripts/css.sh after changing templates. */
+
+/* Scan only the templates, not the repo (and not the plugin bundles next to this file). */
+@import "tailwindcss" source(none);
+@source "../aeris_server/templates";
+
+/* Under another name until task 3.3 replaces the hand-written styles.css with it as `prose`. */
+@plugin "@tailwindcss/typography" {
+  className: typography;
+}
+
+/* daisyUI without its built-in themes: only the `aeris` theme below. */
+@plugin "./daisyui.mjs" {
+  themes: false;
+}
+
+@plugin "./daisyui-theme.mjs" {
+  name: "aeris";
+  default: true;
+  color-scheme: light;
+  --color-base-100: #fefffe;
+  --color-base-200: #e5fcf5;
+  --color-base-300: #b3dec1;
+  --color-base-content: #210124;
+  --color-primary: #750d37;
+  --color-primary-content: #fefffe;
+  --color-secondary: #b3dec1;
+  --color-secondary-content: #210124;
+  --color-accent: #b3dec1;
+  --color-accent-content: #210124;
+  --color-neutral: #210124;
+  --color-neutral-content: #fefffe;
+  --color-info: #2563eb;
+  --color-info-content: #fefffe;
+  --color-success: #15803d;
+  --color-success-content: #fefffe;
+  --color-warning: #b45309;
+  --color-warning-content: #fefffe;
+  --color-error: #b91c1c;
+  --color-error-content: #fefffe;
+}
+
+/* The palette by name, as the templates use it. */
+@theme {
+  --color-white: #fefffe;
+  --color-frozen-water: #e5fcf5;
+  --color-midnight-violet: #210124;
+  --color-dark-amaranth: #750d37;
+  --color-celadon: #b3dec1;
+  --font-sans: Helvetica, Arial, sans-serif;
+}

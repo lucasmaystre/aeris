@@ -22,8 +22,10 @@ over a JSON API. Notes live in Neon Postgres.
 
 ## Stack
 
-Don't mix syntax from other major versions: Python 3.14, FastAPI, SQLAlchemy 2, psycopg 3, Jinja2.
-Phase 3 adds htmx 2, Tailwind CSS v4 (CSS-first `@theme`, no `tailwind.config.js`) and daisyUI v5.
+Don't mix syntax from other major versions: Python 3.14, FastAPI, SQLAlchemy 2, psycopg 3, Jinja2,
+htmx 2, Tailwind CSS v4 (CSS-first config in `server/assets/app.css`, no `tailwind.config.js`) and
+daisyUI v5, with its `aeris` theme. Versions are pinned: Tailwind in `scripts/css.sh`, daisyUI and
+htmx as vendored files.
 
 ## Conventions
 
@@ -44,6 +46,7 @@ uv run pytest                        # all tests (server and cli)
 uv run pytest -m "not db"            # unit tests only: offline, no setup
 uv run ruff check && uv run ruff format && uv run pyright
 uv run fastapi dev server/main.py    # dev server
+scripts/css.sh [--watch]             # rebuild server/static/app.css after template changes; commit it
 uv run aeris-admin migrate           # apply migrations to AERIS_DATABASE_URL
 cd server && vercel deploy --prod    # deploy (Vercel CLI; no Git integration)
 ```

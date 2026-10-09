@@ -15,6 +15,7 @@ dev = [
     "fastapi[standard]>=0.136.1",  # `fastapi dev`
     "python-dotenv>=1.2.2",
     "pyright>=1.1.402",
+    "pytailwindcss>=0.3.1",  # the Tailwind CSS standalone binary, see scripts/css.sh
     "pytest>=8.4.0",
     "ruff>=0.11.13",
 ]
