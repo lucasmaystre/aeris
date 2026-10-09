@@ -6,10 +6,12 @@ _TAGS_LINE = re.compile(r"^\s*tags:(.*)$", re.IGNORECASE | re.MULTILINE)
 _TAG = re.compile(r"#([^\W\d_][\w/-]*)")
 
 TITLE_MAX_LENGTH = 80
+PREVIEW_LENGTH = 140
 SNIPPET_LENGTH = 160
 _PLACEHOLDER_BASE = 0xE000  # Unicode private use area, for protecting escaped characters.
 _ESCAPED = re.compile(r"\\([!-/:-@\[-`{-~])")
 _PLACEHOLDER = re.compile("[\ue000-\uf8ff]")
+_CODE_FENCE = re.compile(r"^\s*(```|~~~)")
 _THEMATIC_BREAK = re.compile(r"^\s*([-*_])(\s*\1){2,}\s*$")
 # Heading, blockquote, list item or task checkbox at the start of a line.
 _BLOCK_MARKER = re.compile(r"^\s*(?:#{1,6}(?=\s|$)|>|[-*+](?=\s)|\d+[.)](?=\s)|\[[ xX]\](?=\s))")
@@ -109,6 +111,25 @@ def title(content: str) -> str:
     return ""
 
 
+def preview(content: str) -> str:
+    """The text after a note's title, as plain text and cut at a word: what a list shows below it.
+
+    Skips the title's line, `Tags:` lines and code fence markers.
+    """
+    texts: list[str] = []
+    title_seen = False
+    for line in content.splitlines():
+        if _TAGS_LINE.match(line) or _CODE_FENCE.match(line):
+            continue
+        text = _clean_line(line)
+        if not text:
+            continue
+        if title_seen:
+            texts.append(text)
+        title_seen = True
+    return _truncate(" ".join(texts), PREVIEW_LENGTH)
+
+
 def _clean_line(line: str) -> str:
     if _THEMATIC_BREAK.match(line):
         return ""
@@ -133,10 +154,10 @@ def _clean_line(line: str) -> str:
     return _WHITESPACE.sub(" ", text).strip()
 
 
-def _truncate(text: str) -> str:
-    if len(text) <= TITLE_MAX_LENGTH:
+def _truncate(text: str, limit: int = TITLE_MAX_LENGTH) -> str:
+    if len(text) <= limit:
         return text
-    cut = text[: TITLE_MAX_LENGTH - 1]
-    if text[TITLE_MAX_LENGTH - 1] != " " and " " in cut:
+    cut = text[: limit - 1]
+    if text[limit - 1] != " " and " " in cut:
         cut = cut[: cut.rfind(" ")]
     return cut.rstrip() + "…"

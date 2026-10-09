@@ -1,10 +1,12 @@
 import pytest
 
 from aeris_server.parsing import (
+    PREVIEW_LENGTH,
     SNIPPET_LENGTH,
     TITLE_MAX_LENGTH,
     extract_tags,
     normalize,
+    preview,
     snippet,
     title,
 )
@@ -178,3 +180,27 @@ def test_snippet_without_match_shows_start() -> None:
     result = snippet(content, "absent")
     assert result.startswith("Beginning word")
     assert result.endswith("…")
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("", ""),
+        ("Just a title", ""),
+        (
+            "# Title\n\nFirst *paragraph*.\n\n- an item\n> a quote",
+            "First paragraph. an item a quote",
+        ),
+        ("Tags: #a\n\nTitle\nBody\nTags: #b", "Body"),
+        ("Title\n```python\nprint(1)\n```\nAfter", "print(1) After"),
+        ("Title\n---\n[link](https://x.example) and `code`", "link and code"),
+    ],
+)
+def test_preview(content: str, expected: str) -> None:
+    assert preview(content) == expected
+
+
+def test_preview_cuts_at_word() -> None:
+    result = preview("Title\n" + "word " * 100)
+    assert result.endswith("word…")
+    assert len(result) <= PREVIEW_LENGTH

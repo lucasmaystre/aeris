@@ -23,12 +23,8 @@ def test_static_file(path: str, content_type: str) -> None:
 def test_built_css_has_theme_and_template_classes() -> None:
     # Guards against committing a stale or broken build (rebuild with scripts/css.sh).
     css = (STATIC_DIR / "app.css").read_text()
-    for needle in [
-        "[data-theme=aeris]",
-        "--color-base-100:#fefffe",
-        ".bg-frozen-water",
-        ".line-clamp-2",
-    ]:
+    needles = ["[data-theme=aeris]", "--color-base-100:#fefffe", ".btn-primary", ".menu", ".badge"]
+    for needle in needles:
         assert needle in css
 
 

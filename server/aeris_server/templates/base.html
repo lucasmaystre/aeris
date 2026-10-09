@@ -8,14 +8,14 @@
   <link rel="stylesheet" href="/static/styles.css">
   <script src="/static/htmx.min.js"></script>
 </head>
-<body class="font-sans bg-white text-midnight-violet h-screen flex flex-col overflow-hidden">
+<body class="font-sans bg-base-100 text-base-content h-screen flex flex-col overflow-hidden">
 
-  <header class="flex-none bg-frozen-water border-b border-celadon px-6 py-3 flex items-center justify-between">
-    <span class="text-lg font-semibold tracking-tight">æris</span>
+  <header class="navbar min-h-0 flex-none bg-base-200 border-b border-base-300 px-4 py-2">
+    <span class="flex-1 text-lg font-semibold tracking-tight">æris</span>
     {% if token %}
-    <form method="post" action="/logout" class="flex items-center gap-3 text-sm">
-      <span class="opacity-50">{{ token.name }}</span>
-      <button type="submit" class="hover:underline">Log out</button>
+    <form method="post" action="/logout" class="flex items-center gap-2 text-sm">
+      <span class="opacity-60">{{ token.name }}</span>
+      <button type="submit" class="btn btn-ghost btn-sm">Log out</button>
     </form>
     {% endif %}
   </header>

@@ -14,6 +14,7 @@ from aeris_server import auth, notes
 from aeris_server.auth import COOKIE_NAME, Token
 from aeris_server.db import get_session
 from aeris_server.notes import NoteData
+from aeris_server.parsing import preview
 
 COOKIE_MAX_AGE = 365 * 24 * 60 * 60
 LOCAL_HOSTS = {"localhost", "127.0.0.1"}
@@ -41,11 +42,6 @@ def ago(moment: datetime, now: datetime | None = None) -> str:
     return "just now"
 
 
-def excerpt(content: str) -> str:
-    flat = " ".join(content.split())
-    return flat[:150] + "…" if len(flat) > 150 else flat
-
-
 def render_markdown(content: str) -> str:
     # Escape raw HTML: agents write notes too, possibly with text copied from the web.
     return markdown2.markdown(content, extras=_MARKDOWN_EXTRAS, safe_mode="escape")
@@ -53,7 +49,7 @@ def render_markdown(content: str) -> str:
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["ago"] = ago
-templates.env.filters["excerpt"] = excerpt
+templates.env.filters["preview"] = preview
 router = APIRouter()
 
 

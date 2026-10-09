@@ -60,7 +60,7 @@ def test_login(api_tokens: dict[str, str]) -> None:
     # The client kept the cookie, so the index page now works and shows who is logged in.
     index = client.get("/")
     assert index.status_code == 200
-    assert '<span class="opacity-50">reader</span>' in index.text
+    assert '<span class="opacity-60">reader</span>' in index.text
 
 
 def test_login_on_localhost_is_not_secure(api_tokens: dict[str, str]) -> None:

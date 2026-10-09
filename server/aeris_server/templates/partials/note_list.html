@@ -1,9 +1,26 @@
-{% for note in notes %}
-<div class="p-3 border-b border-celadon cursor-pointer hover:bg-celadon transition-colors select-none"
-     hx-get="/notes/{{ note.id }}"
-     hx-target="#main-panel"
-     hx-swap="innerHTML">
-  <div class="text-xs text-midnight-violet opacity-50 mb-1">{{ note.created_at | ago }}</div>
-  <div class="text-sm text-midnight-violet opacity-50 leading-snug line-clamp-2 min-h-10">{{ note.content | excerpt }}</div>
-</div>
-{% endfor %}
+<ul class="menu w-full px-2 pt-0 gap-0.5">
+  {% for note in notes %}
+  {% set text = note.content | preview %}
+  <li>
+    <a class="flex flex-col items-stretch gap-1 py-2 cursor-pointer"
+       hx-get="/notes/{{ note.id }}"
+       hx-target="#main-panel"
+       hx-swap="innerHTML">
+      <div class="flex items-baseline gap-2">
+        <span class="flex-1 font-semibold truncate">{{ note.title or "(untitled)" }}</span>
+        <span class="flex-none text-xs opacity-50">{{ note.created_at | ago }}</span>
+      </div>
+      {% if text %}
+      <p class="text-xs opacity-70 leading-snug line-clamp-2">{{ text }}</p>
+      {% endif %}
+      {% if note.tags %}
+      <div class="flex flex-wrap gap-1">
+        {% for tag in note.tags %}<span class="badge badge-sm badge-secondary">#{{ tag }}</span>{% endfor %}
+      </div>
+      {% endif %}
+    </a>
+  </li>
+  {% else %}
+  <li class="menu-disabled"><span class="text-sm">No notes yet.</span></li>
+  {% endfor %}
+</ul>
