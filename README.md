@@ -1,36 +1,17 @@
 # aeris
 
-A command-line tool for jotting down notes, backed by a PostgreSQL database.
+A personal notes app, used two ways: humans through a web UI reachable from anywhere, and AI
+agents through a command-line client. Notes are Markdown, stored in Postgres.
 
-## Installation
+- `server/`: a FastAPI app with the web UI (Jinja + htmx) and a JSON API, deployed to Vercel and
+  backed by Neon Postgres.
+- `cli/`: the `aeris` command-line client, published to PyPI. See [cli/README.md](cli/README.md)
+  to install and use it.
 
-```bash
-pip install aeris
-```
+The design is in [docs/2026-10-09-design.md](docs/2026-10-09-design.md), and progress in
+[docs/2026-10-09-tasks.md](docs/2026-10-09-tasks.md).
 
-## Configuration
+## Development
 
-Create `~/.aeris.yaml`:
-
-```yaml
-database_url: "postgresql+psycopg://user:password@localhost/aeris"
-```
-
-Then initialize the database:
-
-```bash
-aeris reset-db
-```
-
-## Usage
-
-```bash
-aeris add                        # open $EDITOR to write a note
-aeris edit <id>                  # open $EDITOR to edit an existing note
-aeris list                       # list recent notes
-aeris list --last "2 hours"      # notes from the last 2 hours
-aeris display [id]               # display note(s) in full
-aeris delete <id>                # delete a note
-aeris export [path]              # export notes to a JSONL file
-aeris web                        # launch the web interface (default port 8822)
-```
+The repo is a uv workspace. `uv sync` installs everything; [CLAUDE.md](CLAUDE.md) lists the
+commands to test, lint, run and deploy, and the conventions to follow.

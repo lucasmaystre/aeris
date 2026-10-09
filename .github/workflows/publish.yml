@@ -18,8 +18,13 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
+      # Offline tests only: the database tests need a secret this workflow doesn't have.
+      - name: Run unit tests
+        run: uv run pytest -m "not db"
+
+      # Only the CLI (`cli/`, the `aeris` package) goes to PyPI; the server deploys to Vercel.
       - name: Build package
-        run: uv build
+        run: uv build --package aeris
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
