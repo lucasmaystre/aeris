@@ -6,6 +6,6 @@ client = TestClient(app)
 
 
 def test_static_file() -> None:
-    response = client.get("/static/ping.txt")
+    response = client.get("/static/styles.css")
     assert response.status_code == 200
-    assert response.text == "pong\n"
+    assert response.headers["content-type"].startswith("text/css")
