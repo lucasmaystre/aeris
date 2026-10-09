@@ -20,7 +20,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "aeris-server",
     "pyright>=1.1.402",
+    "pytest>=8.4.0",
     "ruff>=0.11.13",
 ]
 
@@ -35,6 +37,12 @@ build-backend = "uv_build"
 module-name = "aeris"
 module-root = ""
 
+[tool.uv.workspace]
+members = ["server"]
+
+[tool.uv.sources]
+aeris-server = { workspace = true }
+
 [tool.ruff]
 line-length = 100  # Default is 88.
 
@@ -43,6 +51,9 @@ line-ending = "lf"  # Default is "auto".
 
 [tool.ruff.lint]
 extend-select = ["W", "I"]  # Adds warnings & imports.
+
+[tool.ruff.lint.isort]
+known-first-party = ["aeris", "aeris_server"]
 
 [tool.pyright]
 deprecateTypingAliases = true
