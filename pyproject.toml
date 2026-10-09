@@ -21,6 +21,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aeris-server",
+    "fastapi[standard]>=0.136.1",  # `fastapi dev`
     "pyright>=1.1.402",
     "pytest>=8.4.0",
     "ruff>=0.11.13",

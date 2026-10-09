@@ -30,6 +30,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "aeris-server" },
+    { name = "fastapi", extra = ["standard"] },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
@@ -50,6 +51,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "aeris-server", editable = "server" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.136.1" },
     { name = "pyright", specifier = ">=1.1.402" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "ruff", specifier = ">=0.11.13" },
