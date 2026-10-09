@@ -11,3 +11,6 @@ wheels/
 
 # Other
 .playwright-mcp/
+
+# Secrets
+.env

@@ -58,6 +58,14 @@ uv run fastapi dev server/main.py        # dev server on http://127.0.0.1:8000
 Lint and format `server` only: the old `aeris/` package doesn't pass. Pyright may warn that a newer
 version exists; that warning is harmless.
 
+## Environment and databases
+
+- The server reads `AERIS_DATABASE_URL`. Neon's `postgresql://…` strings work as-is; use the
+  pooled one (host contains `-pooler`).
+- Local secrets go in the root `.env` (gitignored); tests load it. Never print or commit its values.
+- `AERIS_TEST_DATABASE_URL` points at the Neon branch `test` (schema-only, no real notes). Tests
+  that need Postgres use the `database` fixture, which skips them when the variable is unset.
+
 Deploy (production, via the Vercel CLI; there is no Git integration):
 
 ```bash
