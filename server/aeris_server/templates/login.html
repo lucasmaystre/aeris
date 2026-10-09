@@ -3,6 +3,7 @@
 {% block content %}
 <main class="flex-1 flex items-center justify-center p-6">
   <form method="post" action="/login" class="card w-full max-w-sm border border-base-300">
+    <input type="hidden" name="next" value="{{ next or '/' }}">
     <div class="card-body gap-4">
       <h1 class="card-title">Log in</h1>
       {% if error %}

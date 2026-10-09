@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal
+from urllib.parse import urlencode, urlsplit
 
 import markdown2
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -66,10 +67,26 @@ class LoginRequired(Exception):
 
 
 async def handle_login_required(request: Request, error: Exception) -> Response:
-    # htmx ignores redirects on partial requests, so ask it to navigate instead.
+    """Send the browser to the login page, which brings it back here afterwards."""
     if request.headers.get("hx-request") == "true":
-        return Response(headers={"HX-Redirect": "/login"})
-    return RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
+        # htmx ignores redirects on partial requests, so ask it to navigate instead, coming back
+        # to the page that made the request.
+        current = urlsplit(request.headers.get("hx-current-url", "")).path or "/"
+        return Response(headers={"HX-Redirect": _login_url(current)})
+    here = request.url.path + (f"?{request.url.query}" if request.url.query else "")
+    return RedirectResponse(_login_url(here), status_code=status.HTTP_303_SEE_OTHER)
+
+
+def safe_next(value: str) -> str:
+    """Only follow local paths after login, so the login page can't redirect to other sites."""
+    if value.startswith("/") and not value.startswith("//") and "\\" not in value:
+        return value
+    return "/"
+
+
+def _login_url(next_path: str) -> str:
+    next_path = safe_next(next_path)
+    return "/login" if next_path == "/" else f"/login?{urlencode({'next': next_path})}"
 
 
 def web_read(request: Request) -> Token:
@@ -92,21 +109,23 @@ WRITE = [Depends(web_write)]
 
 
 @router.get("/login")
-def login_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "login.html")
+def login_form(request: Request, next: str = "/") -> HTMLResponse:
+    return templates.TemplateResponse(request, "login.html", {"next": safe_next(next)})
 
 
 @router.post("/login")
-def login(request: Request, token: Annotated[str, Form()] = "") -> Response:
+def login(
+    request: Request, token: Annotated[str, Form()] = "", next: Annotated[str, Form()] = "/"
+) -> Response:
     secret = token.strip()
     if auth.authenticate(secret) is None:
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"error": "Invalid token."},
+            {"error": "Invalid token.", "next": safe_next(next)},
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
-    response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    response = RedirectResponse(safe_next(next), status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(
         COOKIE_NAME,
         secret,
@@ -130,6 +149,19 @@ def logout() -> RedirectResponse:
 @router.get("/")
 def index(request: Request, token: WebReader) -> HTMLResponse:
     return templates.TemplateResponse(request, "index.html", {"token": token})
+
+
+@router.get("/n/{note_id}")
+def note_page(
+    request: Request, token: WebReader, session: SessionDep, note_id: int
+) -> HTMLResponse:
+    """A note's own page: the whole layout, with the note already open."""
+    note = notes.get_note(session, note_id)
+    context: dict[str, Any] = {"token": token, "note": note, "missing": note is None}
+    if note is not None:
+        context.update(rendered_html=render_markdown(note.content or ""), mode="rendered")
+    status_code = status.HTTP_200_OK if note else status.HTTP_404_NOT_FOUND
+    return templates.TemplateResponse(request, "index.html", context, status_code=status_code)
 
 
 @router.get("/notes", dependencies=READ)
@@ -176,6 +208,7 @@ def create_note(
         return _form(request, None, content, None, error=str(error))
     response = _detail(request, note)
     response.headers["HX-Trigger"] = "noteCreated"
+    response.headers["HX-Push-Url"] = f"/n/{note.id}"
     return response
 
 
@@ -216,6 +249,7 @@ def delete_note(request: Request, session: SessionDep, note_id: int) -> HTMLResp
         return _not_found()
     response = _partial(request, "note_deleted.html", note_id=note_id)
     response.headers["HX-Trigger"] = "noteDeleted"
+    response.headers["HX-Push-Url"] = "/"
     return response
 
 

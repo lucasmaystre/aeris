@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from aeris_server import db, notes
 from aeris_server.app import app
 from aeris_server.auth import COOKIE_NAME
-from aeris_server.web import CONFLICT_MESSAGE, ago, render_markdown, time_tag
+from aeris_server.web import CONFLICT_MESSAGE, ago, render_markdown, safe_next, time_tag
 
 pytestmark = pytest.mark.usefixtures("api_tokens")
 
@@ -26,6 +26,39 @@ def test_page_redirects_to_login() -> None:
 def test_htmx_request_redirects_to_login() -> None:
     response = _client().get("/", headers={"HX-Request": "true"})
     assert (response.status_code, response.headers["hx-redirect"]) == (200, "/login")
+    headers = {"HX-Request": "true", "HX-Current-URL": "https://aeris.example/n/7"}
+    response = _client().get("/notes/7", headers=headers)
+    assert response.headers["hx-redirect"] == "/login?next=%2Fn%2F7"
+
+
+def test_page_redirect_remembers_where_to_return() -> None:
+    response = _client().get("/n/7")
+    assert response.headers["location"] == "/login?next=%2Fn%2F7"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("/n/7", "/n/7"),
+        ("/?x=1", "/?x=1"),
+        ("", "/"),
+        ("n/7", "/"),
+        ("//evil.example", "/"),
+        ("/\\evil.example", "/"),
+        ("https://evil.example/", "/"),
+    ],
+)
+def test_safe_next(value: str, expected: str) -> None:
+    assert safe_next(value) == expected
+
+
+def test_login_returns_to_next(api_tokens: dict[str, str]) -> None:
+    form = _client().get("/login?next=/n/7").text
+    assert '<input type="hidden" name="next" value="/n/7">' in form
+    data = {"token": api_tokens["rw"], "next": "/n/7"}
+    assert _client().post("/login", data=data).headers["location"] == "/n/7"
+    data["next"] = "//evil.example"
+    assert _client().post("/login", data=data).headers["location"] == "/"
 
 
 def test_invalid_cookie_redirects_to_login() -> None:
@@ -167,6 +200,25 @@ def test_tag_chips_and_data(browser: TestClient) -> None:
     assert 'data-tag="project/aeris"' in detail
 
 
+def test_note_page(browser: TestClient) -> None:
+    note = _create("# Heading\n\nBody")
+    page = browser.get(f"/n/{note.id}")
+    assert page.status_code == 200
+    assert 'id="note-list-container"' in page.text
+    assert "<h1>Heading</h1>" in page.text
+    missing = browser.get("/n/999")
+    assert missing.status_code == 404
+    assert "Note not found." in missing.text
+
+
+def test_note_list_links(browser: TestClient) -> None:
+    note = _create("Linked")
+    html = browser.get("/notes").text
+    assert f'href="/n/{note.id}"' in html
+    assert f'hx-push-url="/n/{note.id}"' in html
+    assert f'data-id="{note.id}"' in html
+
+
 def test_note_detail(browser: TestClient) -> None:
     note = _create("# Heading\n\n<script>x</script>")
     rendered = browser.get(f"/notes/{note.id}").text
@@ -194,6 +246,7 @@ def test_create_note(browser: TestClient) -> None:
     response = browser.post("/notes", data={"content": "# Fresh"})
     assert response.status_code == 200
     assert response.headers["hx-trigger"] == "noteCreated"
+    assert response.headers["hx-push-url"].startswith("/n/")
     assert "<h1>Fresh</h1>" in response.text
     empty = browser.post("/notes", data={"content": "  "})
     assert "Note content cannot be empty." in empty.text
@@ -232,6 +285,7 @@ def test_delete_note(browser: TestClient) -> None:
     response = browser.delete(f"/notes/{note.id}")
     assert response.status_code == 200
     assert response.headers["hx-trigger"] == "noteDeleted"
+    assert response.headers["hx-push-url"] == "/"
     assert f"Note #{note.id} deleted." in response.text
     assert "Doomed" not in browser.get("/notes").text
     assert browser.get(f"/notes/{note.id}").status_code == 404

@@ -151,3 +151,20 @@ document.addEventListener("keydown", (event) => {
 });
 // Re-apply the current search whenever the sidebar is (re)loaded.
 htmx.onLoad(applySearch);
+
+// Highlight the note whose page we're on (`/n/42`) in the sidebar.
+function markCurrent() {
+  const match = location.pathname.match(/^\/n\/(\d+)$/);
+  const current = match ? match[1] : null;
+  for (const item of document.querySelectorAll("#note-list li[data-id]")) {
+    item.querySelector("a").classList.toggle("menu-active", item.dataset.id === current);
+  }
+}
+
+htmx.onLoad(markCurrent);
+document.addEventListener("htmx:pushedIntoHistory", markCurrent);
+// Back and forward restore an earlier page: bring its filter and highlight up to date.
+document.addEventListener("htmx:historyRestore", () => {
+  applySearch();
+  markCurrent();
+});

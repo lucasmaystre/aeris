@@ -10,9 +10,11 @@
 <ul id="note-list" class="menu w-full px-2 pt-0 gap-0.5">
   {% for note in notes %}
   {% set text = note.content | preview %}
-  <li data-text="{{ note.content }}" data-tags="{{ note.tags | join(' ') }}">
+  <li data-id="{{ note.id }}" data-text="{{ note.content }}" data-tags="{{ note.tags | join(' ') }}">
     <a class="flex flex-col items-stretch gap-1 py-2 cursor-pointer"
+       href="/n/{{ note.id }}"
        hx-get="/notes/{{ note.id }}"
+       hx-push-url="/n/{{ note.id }}"
        hx-target="#main-panel"
        hx-swap="innerHTML">
       <div class="flex items-baseline gap-2">

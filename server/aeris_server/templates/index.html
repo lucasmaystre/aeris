@@ -24,9 +24,15 @@
   </aside>
 
   <main id="main-panel" class="flex-1 overflow-y-auto">
+    {% if note %}
+    {% include "partials/note_detail.html" %}
+    {% elif missing %}
+    <p class="p-6 text-error">Note not found.</p>
+    {% else %}
     <div class="h-full flex items-center justify-center text-sm opacity-50">
       Select a note, or create a new one.
     </div>
+    {% endif %}
   </main>
 
 </div>
