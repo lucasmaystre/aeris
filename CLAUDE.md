@@ -50,6 +50,8 @@ cd server && vercel deploy --prod    # deploy (Vercel CLI; no Git integration)
 ## Secrets and databases
 
 - Local secrets live in the root `.env` (gitignored). Never print or commit them.
+- `AERIS_TOKENS` holds API tokens as `name:ro|rw:secret`, comma-separated. Generate secrets with
+  `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
 - Tests marked `db` (automatic for the `database` and `empty_database` fixtures) need
   `AERIS_TEST_DATABASE_URL`, a Neon branch with no real notes; they skip without it.
 - `server/.vercelignore` keeps `.env*` and tests out of deploys. Keep it that way.
