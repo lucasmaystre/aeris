@@ -20,6 +20,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "aeris-cli",
     "aeris-server",
     "fastapi[standard]>=0.136.1",  # `fastapi dev`
     "python-dotenv>=1.2.2",
@@ -40,9 +41,10 @@ module-name = "aeris"
 module-root = ""
 
 [tool.uv.workspace]
-members = ["server"]
+members = ["server", "cli"]
 
 [tool.uv.sources]
+aeris-cli = { workspace = true }
 aeris-server = { workspace = true }
 
 [tool.ruff]
@@ -55,7 +57,12 @@ line-ending = "lf"  # Default is "auto".
 extend-select = ["W", "I"]  # Adds warnings & imports.
 
 [tool.ruff.lint.isort]
-known-first-party = ["aeris", "aeris_server"]
+known-first-party = ["aeris", "aeris_cli", "aeris_server"]
+
+[tool.pytest.ini_options]
+testpaths = ["server/tests", "cli/tests"]
+addopts = "--import-mode=importlib"  # Test files in server/ and cli/ may share names.
+markers = ["db: needs the Postgres test database (AERIS_TEST_DATABASE_URL)"]
 
 [tool.pyright]
 deprecateTypingAliases = true

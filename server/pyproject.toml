@@ -23,7 +23,3 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "aeris_server"
 module-root = ""
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-markers = ["db: needs the Postgres test database (AERIS_TEST_DATABASE_URL)"]

@@ -1,0 +1,25 @@
+[project]
+# Renamed to `aeris` (and the command below too) in task 2.5, when the old package goes.
+name = "aeris-cli"
+version = "0.5.0"
+description = "Command-line client for aeris, a notes app for humans and AI agents."
+authors = [
+    {name = "Lucas Maystre", email = "lucas@maystre.ch"},
+]
+requires-python = ">=3.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "pyyaml>=6.0.3",
+    "typer>=0.24.2",
+]
+
+[project.scripts]
+aeris-next = "aeris_cli.main:app"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "aeris_cli"
+module-root = ""

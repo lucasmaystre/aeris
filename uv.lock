@@ -9,6 +9,7 @@ resolution-markers = [
 [manifest]
 members = [
     "aeris",
+    "aeris-cli",
     "aeris-server",
 ]
 
@@ -29,6 +30,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "aeris-cli" },
     { name = "aeris-server" },
     { name = "fastapi", extra = ["standard"] },
     { name = "pyright" },
@@ -51,12 +53,30 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aeris-cli", editable = "cli" },
     { name = "aeris-server", editable = "server" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.136.1" },
     { name = "pyright", specifier = ">=1.1.402" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "ruff", specifier = ">=0.11.13" },
+]
+
+[[package]]
+name = "aeris-cli"
+version = "0.5.0"
+source = { editable = "cli" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pyyaml" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "typer", specifier = ">=0.24.2" },
 ]
 
 [[package]]

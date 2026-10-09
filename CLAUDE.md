@@ -17,6 +17,8 @@ over a JSON API. Notes live in Neon Postgres.
 ## Layout
 
 - `server/`: the FastAPI app (`aeris_server`) and the Vercel project root.
+- `cli/`: the new CLI (`aeris_cli`), an HTTP client of the server. Until task 2.5 it's packaged as
+  `aeris-cli` with the command `aeris-next`; then both become `aeris`.
 - `aeris/`: the old CLI, talking to the database directly. Leave it untouched until task 2.5.
 
 ## Stack
@@ -36,12 +38,12 @@ Phase 3 adds htmx 2, Tailwind CSS v4 (CSS-first `@theme`, no `tailwind.config.js
 
 ## Commands
 
-From the repo root. Lint `server` only: the old `aeris/` doesn't pass.
+From the repo root. Lint `server` and `cli` only: the old `aeris/` doesn't pass.
 
 ```bash
-uv run pytest server                 # all tests
-uv run pytest server -m "not db"     # unit tests only: offline, no setup
-uv run ruff check server && uv run ruff format server && uv run pyright server
+uv run pytest                        # all tests (server and cli)
+uv run pytest -m "not db"            # unit tests only: offline, no setup
+uv run ruff check server cli && uv run ruff format server cli && uv run pyright server cli
 uv run fastapi dev server/main.py    # dev server
 uv run aeris-admin migrate           # apply migrations to AERIS_DATABASE_URL
 cd server && vercel deploy --prod    # deploy (Vercel CLI; no Git integration)
