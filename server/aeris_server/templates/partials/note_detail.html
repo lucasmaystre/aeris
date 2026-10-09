@@ -25,6 +25,13 @@
             hx-swap="innerHTML">
       Edit
     </button>
+    <button class="btn btn-xs btn-ghost text-error"
+            hx-delete="/notes/{{ note.id }}"
+            hx-confirm="Delete this note?"
+            hx-target="#main-panel"
+            hx-swap="innerHTML">
+      Delete
+    </button>
     {% if note.tags %}
     <div class="w-full flex flex-wrap gap-1">
       {% for tag in note.tags %}<span class="badge badge-sm badge-secondary">#{{ tag }}</span>{% endfor %}

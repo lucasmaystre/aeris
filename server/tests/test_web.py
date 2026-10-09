@@ -195,7 +195,27 @@ def test_update_note_conflict(browser: TestClient) -> None:
     assert browser.put(f"/notes/{note.id}", data=data).headers["hx-trigger"] == "noteUpdated"
 
 
+def test_delete_note(browser: TestClient) -> None:
+    note = _create("Doomed")
+    detail = browser.get(f"/notes/{note.id}").text
+    assert f'hx-delete="/notes/{note.id}"' in detail
+    assert 'hx-confirm="Delete this note?"' in detail
+
+    response = browser.delete(f"/notes/{note.id}")
+    assert response.status_code == 200
+    assert response.headers["hx-trigger"] == "noteDeleted"
+    assert f"Note #{note.id} deleted." in response.text
+    assert "Doomed" not in browser.get("/notes").text
+    assert browser.get(f"/notes/{note.id}").status_code == 404
+    assert browser.delete(f"/notes/{note.id}").status_code == 404
+
+
+def test_index_refreshes_list_after_delete(browser: TestClient) -> None:
+    assert "noteDeleted from:body" in browser.get("/").text
+
+
 def test_web_writes_require_rw(database: None, api_tokens: dict[str, str]) -> None:
     reader = TestClient(app, cookies={COOKIE_NAME: api_tokens["ro"]})
     assert reader.post("/notes", data={"content": "x"}).status_code == 403
     assert reader.put("/notes/1", data={"content": "x"}).status_code == 403
+    assert reader.delete("/notes/1").status_code == 403

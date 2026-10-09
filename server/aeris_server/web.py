@@ -198,6 +198,17 @@ def update_note(
     return response
 
 
+@router.delete("/notes/{note_id}", dependencies=WRITE)
+def delete_note(request: Request, session: SessionDep, note_id: int) -> HTMLResponse:
+    try:
+        notes.delete_note(session, note_id)
+    except notes.NoteNotFound:
+        return _not_found()
+    response = _partial(request, "note_deleted.html", note_id=note_id)
+    response.headers["HX-Trigger"] = "noteDeleted"
+    return response
+
+
 def _partial(request: Request, name: str, **context: Any) -> HTMLResponse:
     return templates.TemplateResponse(request, f"partials/{name}", context)
 

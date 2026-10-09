@@ -15,7 +15,7 @@
 
     <div id="note-list-container" class="flex-1 overflow-y-auto"
          hx-get="/notes"
-         hx-trigger="load, noteCreated from:body, noteUpdated from:body"
+         hx-trigger="load, noteCreated from:body, noteUpdated from:body, noteDeleted from:body"
          hx-target="#note-list-container"
          hx-swap="innerHTML">
     </div>
