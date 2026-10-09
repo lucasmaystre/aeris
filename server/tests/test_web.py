@@ -131,6 +131,7 @@ def _create(content: str) -> notes.NoteData:
 def test_index(browser: TestClient) -> None:
     response = browser.get("/")
     assert response.status_code == 200
+    assert '<input id="search" type="search"' in response.text
     assert 'hx-get="/notes"' in response.text
     assert "/static/app.css" in response.text
 
@@ -145,6 +146,13 @@ def test_note_list(browser: TestClient) -> None:
     assert html.index(f'/notes/{second.id}"') < html.index(f'/notes/{first.id}"')
     assert "Deleted note" not in html
     assert "just now" in html
+
+
+def test_note_list_carries_text_for_search(browser: TestClient) -> None:
+    _create('Quotes " and <tags> & ampersands')
+    html = browser.get("/notes").text
+    assert 'data-text="Quotes &#34; and &lt;tags&gt; &amp; ampersands"' in html
+    assert '<li class="no-matches menu-disabled" hidden>' in html
 
 
 def test_note_detail(browser: TestClient) -> None:

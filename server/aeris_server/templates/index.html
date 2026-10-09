@@ -4,13 +4,15 @@
 <div class="flex flex-1 overflow-hidden">
 
   <aside id="sidebar" class="w-80 flex-none flex flex-col overflow-hidden border-r border-base-300">
-    <div class="flex-none p-3">
+    <div class="flex-none p-3 flex flex-col gap-2">
       <button class="btn btn-primary btn-sm w-full"
               hx-get="/notes/new"
               hx-target="#main-panel"
               hx-swap="innerHTML">
         New note
       </button>
+      <input id="search" type="search" placeholder="Search notes…" autocomplete="off"
+             aria-label="Search notes" class="input input-sm w-full">
     </div>
 
     <div id="note-list-container" class="flex-1 overflow-y-auto"

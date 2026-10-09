@@ -3,6 +3,7 @@
 /* Scan only the templates, not the repo (and not the plugin bundles next to this file). */
 @import "tailwindcss" source(none);
 @source "../aeris_server/templates";
+@source "../static/app.js";
 
 @plugin "@tailwindcss/typography";
 

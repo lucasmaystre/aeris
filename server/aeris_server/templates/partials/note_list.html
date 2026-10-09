@@ -1,7 +1,7 @@
-<ul class="menu w-full px-2 pt-0 gap-0.5">
+<ul id="note-list" class="menu w-full px-2 pt-0 gap-0.5">
   {% for note in notes %}
   {% set text = note.content | preview %}
-  <li>
+  <li data-text="{{ note.content }}">
     <a class="flex flex-col items-stretch gap-1 py-2 cursor-pointer"
        hx-get="/notes/{{ note.id }}"
        hx-target="#main-panel"
@@ -11,8 +11,9 @@
         <span class="flex-none text-xs opacity-50">{{ note.created_at | ago }}</span>
       </div>
       {% if text %}
-      <p class="text-xs opacity-70 leading-snug line-clamp-2">{{ text }}</p>
+      <p class="preview text-xs opacity-70 leading-snug line-clamp-2">{{ text }}</p>
       {% endif %}
+      <p class="snippet text-xs opacity-70 leading-snug line-clamp-3" hidden></p>
       {% if note.tags %}
       <div class="flex flex-wrap gap-1">
         {% for tag in note.tags %}<span class="badge badge-sm badge-secondary">#{{ tag }}</span>{% endfor %}
@@ -23,4 +24,7 @@
   {% else %}
   <li class="menu-disabled"><span class="text-sm">No notes yet.</span></li>
   {% endfor %}
+  {% if notes %}
+  <li class="no-matches menu-disabled" hidden><span class="text-sm">No notes match.</span></li>
+  {% endif %}
 </ul>
