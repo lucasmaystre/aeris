@@ -12,14 +12,21 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, NoReturn
 
 import typer
 
 from aeris_cli.client import AerisError, Client
 from aeris_cli.config import ConfigError, load_config
 
-app = typer.Typer(no_args_is_help=True, add_completion=False)
+app = typer.Typer(
+    no_args_is_help=True,
+    add_completion=False,
+    epilog=(
+        "Exit codes: 0 success, 1 error, 2 usage error. With --json, errors are JSON on stdout: "
+        '{"error": ..., "status": ...}, plus "current" (the latest version) on a conflict.'
+    ),
+)
 
 JsonOption = Annotated[bool, typer.Option("--json", help="Print the API's JSON response.")]
 MessageOption = Annotated[
@@ -69,7 +76,7 @@ def list_notes(
 ) -> None:
     """List notes, newest first."""
     since = parse_since(last) if last is not None else None
-    with _errors():
+    with _errors(json_output):
         data = make_client().list_notes(limit=limit, since=since, tag=tag, order=order.value)
     if json_output:
         _print_json(data)
@@ -90,7 +97,7 @@ def search(
 ) -> None:
     """Find notes containing a phrase, ignoring case and accents."""
     phrase = " ".join(query)
-    with _errors():
+    with _errors(json_output):
         data = make_client().search(phrase, tag=tag, limit=limit)
     if json_output:
         _print_json(data)
@@ -107,7 +114,7 @@ def search(
 @app.command()
 def tags(json_output: JsonOption = False) -> None:
     """List tags with how many notes carry each."""
-    with _errors():
+    with _errors(json_output):
         data = make_client().list_tags()
     if json_output:
         _print_json(data)
@@ -123,7 +130,7 @@ def show(
     json_output: JsonOption = False,
 ) -> None:
     """Show notes in full."""
-    with _errors():
+    with _errors(json_output):
         data = make_client().get_notes(ids)
     if json_output:
         _print_json(data)
@@ -142,8 +149,8 @@ def show(
 @app.command()
 def add(message: MessageOption = None, json_output: JsonOption = False) -> None:
     """Create a note."""
-    content = _input_text(message)
-    with _errors():
+    content = _input_text(message, json_output)
+    with _errors(json_output):
         note = make_client().create_note(content)
     if json_output:
         _print_json(note)
@@ -158,8 +165,8 @@ def append(
     json_output: JsonOption = False,
 ) -> None:
     """Add text to the end of a note, as a new paragraph."""
-    text = _input_text(message)
-    with _errors():
+    text = _input_text(message, json_output)
+    with _errors(json_output):
         note = make_client().append_note(note_id, text)
     if json_output:
         _print_json(note)
@@ -187,15 +194,13 @@ def edit(
     if stdin:
         content = sys.stdin.read()
         if not content.strip():
-            typer.echo("Error: No text to save: pipe the new content in.", err=True)
-            raise typer.Exit(1)
-        with _errors():
+            _fail("No text to save: pipe the new content in.", json_output)
+        with _errors(json_output):
             note = make_client().update_note(note_id, content, expected_updated_at)
     else:
         if not _interactive():
-            typer.echo("Error: Not in a terminal: use --stdin to pass the new content.", err=True)
-            raise typer.Exit(1)
-        note = _edit_in_editor(note_id)
+            _fail("Not in a terminal: use --stdin to pass the new content.", json_output)
+        note = _edit_in_editor(note_id, json_output)
     if json_output:
         _print_json(note)
     else:
@@ -203,11 +208,43 @@ def edit(
 
 
 @app.command()
-def delete(note_id: Annotated[int, typer.Argument(help="The note to delete.")]) -> None:
+def delete(
+    note_id: Annotated[int, typer.Argument(help="The note to delete.")],
+    json_output: JsonOption = False,
+) -> None:
     """Delete a note."""
-    with _errors():
+    with _errors(json_output):
         make_client().delete_note(note_id)
-    typer.echo(f"Deleted note {note_id}.")
+    if json_output:
+        _print_json({"id": note_id, "deleted": True})
+    else:
+        typer.echo(f"Deleted note {note_id}.")
+
+
+@app.command()
+def export(
+    path: Annotated[
+        str | None,
+        typer.Argument(help="File to write, or '-' for stdout. Default: aeris-export-<time>.jsonl"),
+    ] = None,
+    force: Annotated[bool, typer.Option("--force", help="Overwrite an existing file.")] = False,
+) -> None:
+    """Save every note, including deleted ones, as JSON Lines: a backup."""
+    target = path or f"aeris-export-{datetime.now():%Y%m%d-%H%M%S}.jsonl"
+    if target != "-" and Path(target).exists() and not force:
+        _fail(f"{target} already exists; use --force to overwrite it.", json_output=False)
+    with _errors(json_output=False):
+        exported = make_client().export()
+    notes = [json.loads(line) for line in exported.splitlines() if line.strip()]
+    deleted = sum(1 for note in notes if note["deleted"])
+    plural = "" if len(notes) == 1 else "s"
+    summary = f"Exported {len(notes)} note{plural}{f' ({deleted} deleted)' if deleted else ''}"
+    if target == "-":
+        typer.echo(exported, nl=False)
+        typer.echo(f"{summary}.", err=True)
+    else:
+        Path(target).write_text(exported)
+        typer.echo(f"{summary} to {target}.")
 
 
 def edit_in_editor(initial: str = "") -> str:
@@ -223,12 +260,12 @@ def edit_in_editor(initial: str = "") -> str:
         os.unlink(path)
 
 
-def _edit_in_editor(note_id: int) -> dict[str, Any]:
+def _edit_in_editor(note_id: int, json_output: bool) -> dict[str, Any]:
     """Edit a note's current content in the editor and save it, guarding against conflicts."""
-    client = make_client()
-    with _errors():
+    with _errors(json_output):
+        client = make_client()
         current = client.get_note(note_id)
-    content = _run_editor(current["content"])
+    content = _run_editor(current["content"], json_output)
     if not content.strip():
         typer.echo("Empty note, nothing saved.")
         raise typer.Exit(0)
@@ -239,32 +276,30 @@ def _edit_in_editor(note_id: int) -> dict[str, Any]:
         return client.update_note(note_id, content, current["updated_at"])
     except AerisError as error:
         if error.status != CONFLICT:
-            typer.echo(f"Error: {error}", err=True)
-            raise typer.Exit(1) from error
+            _fail_with(error, json_output)
         fd, draft = tempfile.mkstemp(prefix=f"aeris-note-{note_id}-", suffix=".md")
         with os.fdopen(fd, "w") as file:
             file.write(content)
-        typer.echo(
-            f"Error: Note {note_id} changed while you were editing; nothing saved. "
-            f"Your text is in {draft}",
-            err=True,
+        message = (
+            f"Note {note_id} changed while you were editing; nothing saved. Your text is in {draft}"
         )
-        raise typer.Exit(1) from error
+        # The path ends the message, so the status only goes in the JSON form.
+        status = error.status if json_output else None
+        _fail(message, json_output, status=status, current=error.current)
 
 
-def _run_editor(initial: str = "") -> str:
+def _run_editor(initial: str = "", json_output: bool = False) -> str:
     try:
         return edit_in_editor(initial)
     except (OSError, subprocess.CalledProcessError) as error:
-        typer.echo(f"Error: the editor failed ({error}); nothing saved.", err=True)
-        raise typer.Exit(1) from error
+        _fail(f"the editor failed ({error}); nothing saved.", json_output)
 
 
 def _interactive() -> bool:
     return sys.stdin.isatty()
 
 
-def _input_text(message: str | None) -> str:
+def _input_text(message: str | None, json_output: bool) -> str:
     """Text from `-m`, else piped stdin, else the editor in an interactive terminal.
 
     Exits without saving if the text is empty: quietly if the user emptied the editor, with an
@@ -275,23 +310,49 @@ def _input_text(message: str | None) -> str:
     elif not _interactive():
         text = sys.stdin.read()
     else:
-        text = _run_editor()
+        text = _run_editor(json_output=json_output)
         if not text.strip():
             typer.echo("Empty note, nothing saved.")
             raise typer.Exit(0)
     if not text.strip():
-        typer.echo(f"Error: {NO_TEXT}", err=True)
-        raise typer.Exit(1)
+        _fail(NO_TEXT, json_output)
     return text
 
 
 @contextmanager
-def _errors() -> Iterator[None]:
+def _errors(json_output: bool) -> Iterator[None]:
+    """Report configuration and server errors, then exit with 1."""
     try:
         yield
-    except (ConfigError, AerisError) as error:
-        typer.echo(f"Error: {error}", err=True)
-        raise typer.Exit(1) from error
+    except ConfigError as error:
+        _fail(str(error), json_output)
+    except AerisError as error:
+        _fail_with(error, json_output)
+
+
+def _fail_with(error: AerisError, json_output: bool) -> NoReturn:
+    _fail(error.message, json_output, status=error.status, current=error.current)
+
+
+def _fail(
+    message: str,
+    json_output: bool,
+    *,
+    status: int | None = None,
+    current: dict[str, Any] | None = None,
+) -> NoReturn:
+    """Exit with 1: `Error: ...` on stderr, or with --json, `{"error": ...}` on stdout."""
+    if json_output:
+        body: dict[str, Any] = {"error": message}
+        if status is not None:
+            body["status"] = status
+        if current is not None:
+            body["current"] = current
+        _print_json(body)
+    else:
+        suffix = f" (HTTP {status})" if status is not None else ""
+        typer.echo(f"Error: {message}{suffix}", err=True)
+    raise typer.Exit(1)
 
 
 def _id_width(notes: list[dict[str, Any]]) -> int:

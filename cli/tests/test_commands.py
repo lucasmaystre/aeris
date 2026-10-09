@@ -58,6 +58,8 @@ class FakeServer:
         status, body = self.queue.pop(0) if self.queue else (self.status, self.body)
         if body is None:
             return httpx.Response(status)
+        if isinstance(body, str):
+            return httpx.Response(status, text=body)
         return httpx.Response(status, json=body)
 
     @property
@@ -492,6 +494,112 @@ def test_edit_expected_updated_at_needs_stdin(server: FakeServer) -> None:
     assert server.requests == []
 
 
+# export.
+
+
+DELETED_12 = {**NOTE_12, "deleted": True}
+EXPORT = json.dumps(NOTE_7) + "\n" + json.dumps(DELETED_12) + "\n"
+
+
+def test_export_default_path(
+    server: FakeServer, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    server.body = EXPORT
+    result = runner.invoke(app, ["export"])
+    assert result.exit_code == 0
+    [written] = list(tmp_path.glob("aeris-export-*.jsonl"))
+    assert written.read_text() == EXPORT
+    assert result.stdout == f"Exported 2 notes (1 deleted) to {written.name}.\n"
+    assert server.requests[-1].url.path == "/api/export"
+
+
+def test_export_to_stdout(server: FakeServer) -> None:
+    server.body = json.dumps(NOTE_7) + "\n"
+    result = runner.invoke(app, ["export", "-"])
+    assert (result.exit_code, result.stdout) == (0, server.body)
+    assert result.stderr == "Exported 1 note.\n"
+
+
+def test_export_refuses_to_overwrite(server: FakeServer, tmp_path: Path) -> None:
+    target = tmp_path / "backup.jsonl"
+    target.write_text("precious")
+    server.body = EXPORT
+    result = runner.invoke(app, ["export", str(target)])
+    assert result.exit_code == 1
+    assert result.stderr == f"Error: {target} already exists; use --force to overwrite it.\n"
+    assert (target.read_text(), server.requests) == ("precious", [])
+    assert runner.invoke(app, ["export", str(target), "--force"]).exit_code == 0
+    assert target.read_text() == EXPORT
+
+
+def test_export_error_writes_nothing(server: FakeServer, tmp_path: Path) -> None:
+    server.status, server.body = 401, {"detail": "Not authenticated."}
+    target = tmp_path / "backup.jsonl"
+    result = runner.invoke(app, ["export", str(target)])
+    assert (result.exit_code, result.stderr) == (1, "Error: Not authenticated. (HTTP 401)\n")
+    assert not target.exists()
+
+
+# Errors with --json.
+
+
+def test_json_error_from_server(server: FakeServer) -> None:
+    server.status, server.body = 404, {"detail": "No note with id 99."}
+    for args in (["append", "99", "-m", "x"], ["delete", "99"], ["edit", "99", "--stdin"]):
+        result = runner.invoke(app, [*args, "--json"], input="new")
+        assert result.exit_code == 1, args
+        assert json.loads(result.stdout) == {"error": "No note with id 99.", "status": 404}
+        assert result.stderr == ""
+
+
+def test_json_conflict_includes_current(server: FakeServer) -> None:
+    server.status, server.body = 409, {"detail": "Note 7 was changed at x.", "current": EDITED_7}
+    args = ["edit", "7", "--stdin", "--expected-updated-at", "x", "--json"]
+    result = runner.invoke(app, args, input="New")
+    assert result.exit_code == 1
+    assert json.loads(result.stdout) == {
+        "error": "Note 7 was changed at x.",
+        "status": 409,
+        "current": EDITED_7,
+    }
+
+
+def test_json_editor_conflict(server: FakeServer, editor: Path) -> None:
+    editor.write_text("My rewrite.")
+    server.queue = [
+        (200, NOTE_7),
+        (409, {"detail": "Note 7 was changed at x.", "current": EDITED_7}),
+    ]
+    result = runner.invoke(app, ["edit", "7", "--json"])
+    body = json.loads(result.stdout)
+    assert (body["status"], body["current"]) == (409, EDITED_7)
+    draft = Path(body["error"].split("Your text is in ")[1])
+    assert draft.read_text() == "My rewrite."
+    draft.unlink()
+
+
+def test_json_errors_without_server(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("AERIS_CONFIG_PATH", str(tmp_path / "absent.yaml"))
+    monkeypatch.delenv("AERIS_URL", raising=False)
+    monkeypatch.delenv("AERIS_TOKEN", raising=False)
+    result = runner.invoke(app, ["list", "--json"])
+    assert result.exit_code == 1
+    assert json.loads(result.stdout)["error"].startswith("Set AERIS_URL and AERIS_TOKEN")
+    result = runner.invoke(app, ["add", "--json"], input="")
+    assert json.loads(result.stdout) == {"error": main.NO_TEXT}
+
+
+def test_delete_json(server: FakeServer) -> None:
+    server.status, server.body = 204, None
+    result = runner.invoke(app, ["delete", "7", "--json"])
+    assert (result.exit_code, json.loads(result.stdout)) == (0, {"id": 7, "deleted": True})
+
+
+def test_help_documents_exit_codes() -> None:
+    assert "Exit codes: 0 success, 1 error, 2 usage error." in runner.invoke(app, ["--help"]).stdout
+
+
 # Errors.
 
 
@@ -505,7 +613,10 @@ def test_server_error(server: FakeServer) -> None:
 def test_server_error_without_detail(server: FakeServer) -> None:
     server.status, server.body = 502, ["unexpected"]
     result = runner.invoke(app, ["show", "1"])
-    assert (result.exit_code, result.stderr) == (1, "Error: The server returned HTTP 502.\n")
+    assert (result.exit_code, result.stderr) == (
+        1,
+        "Error: Unexpected response from the server. (HTTP 502)\n",
+    )
 
 
 def test_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:

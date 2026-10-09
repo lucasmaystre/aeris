@@ -12,9 +12,13 @@ TIMEOUT_SECONDS = 30  # Generous: the first request after a while wakes the serv
 
 
 class AerisError(Exception):
-    def __init__(self, message: str, status: int | None = None) -> None:
+    def __init__(
+        self, message: str, status: int | None = None, current: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(message)
+        self.message = message
         self.status = status  # The HTTP status, if the server answered.
+        self.current = current  # On a conflict (409): the note's latest version.
 
 
 class Client:
@@ -82,6 +86,10 @@ class Client:
     def delete_note(self, note_id: int) -> None:
         self._request("DELETE", f"/api/notes/{note_id}")
 
+    def export(self) -> str:
+        """Every note, including deleted ones, as JSON Lines."""
+        return self._send("GET", "/api/export").text
+
     def _get(self, path: str, params: dict[str, str | int]) -> dict[str, Any]:
         return self._request("GET", path, params=params)
 
@@ -93,6 +101,17 @@ class Client:
         params: dict[str, str | int] | None = None,
         json: dict[str, Any] | None = None,
     ) -> Any:
+        response = self._send(method, path, params=params, json=json)
+        return response.json() if response.content else None
+
+    def _send(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, str | int] | None = None,
+        json: dict[str, Any] | None = None,
+    ) -> httpx.Response:
         try:
             response = self._http.request(
                 method, path, params=params, json=json, headers=self._headers
@@ -100,16 +119,19 @@ class Client:
         except httpx.HTTPError as error:
             raise AerisError(f"Could not reach {self._url}: {error}") from error
         if response.is_error:
-            raise AerisError(_error_message(response), status=response.status_code)
-        return response.json() if response.content else None
+            raise _error(response)
+        return response
 
 
-def _error_message(response: httpx.Response) -> str:
+def _error(response: httpx.Response) -> AerisError:
     try:
         body = response.json()
     except ValueError:
         body = None
-    detail = body.get("detail") if isinstance(body, dict) else None
-    if isinstance(detail, str):
-        return f"{detail} (HTTP {response.status_code})"
-    return f"The server returned HTTP {response.status_code}."
+    body = body if isinstance(body, dict) else {}
+    detail = body.get("detail")
+    message = detail if isinstance(detail, str) else "Unexpected response from the server."
+    current = body.get("current")
+    return AerisError(
+        message, status=response.status_code, current=current if isinstance(current, dict) else None
+    )
