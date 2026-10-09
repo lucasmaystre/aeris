@@ -2,7 +2,8 @@ import os
 from datetime import datetime
 from functools import cache
 
-from sqlalchemy import Boolean, DateTime, Engine, Text, create_engine, func
+from sqlalchemy import Boolean, DateTime, Engine, ForeignKey, Text, create_engine, func
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 from sqlalchemy.pool import NullPool
 
@@ -44,8 +45,17 @@ class Note(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
+    # Set explicitly when content changes, so derived updates (e.g. tags) leave it alone.
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     content: Mapped[str] = mapped_column(Text)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
     deleted: Mapped[bool] = mapped_column(Boolean, server_default="false")
+
+
+class NoteRevision(Base):
+    __tablename__ = "note_revision"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    note_id: Mapped[int] = mapped_column(ForeignKey("note.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    content: Mapped[str] = mapped_column(Text)

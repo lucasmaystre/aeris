@@ -2,10 +2,13 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from aeris_server import db
 from aeris_server.admin import main
 from aeris_server.migrate import migrate, migration_files
+
+ALL_VERSIONS = [path.stem for path in migration_files()]
 
 
 def _tables() -> set[str]:
@@ -24,9 +27,9 @@ def _versions() -> list[str]:
 
 @pytest.mark.usefixtures("empty_database")
 def test_migrate_empty_database() -> None:
-    assert migrate(db.engine()) == ["001_baseline"]
-    assert _tables() == {"note", "schema_migrations"}
-    assert _versions() == ["001_baseline"]
+    assert migrate(db.engine()) == ALL_VERSIONS
+    assert _tables() == {"note", "note_revision", "schema_migrations"}
+    assert _versions() == ALL_VERSIONS
 
 
 @pytest.mark.usefixtures("database")
@@ -40,7 +43,7 @@ def test_baseline_keeps_existing_notes() -> None:
     with db.engine().begin() as connection:
         connection.execute(text("CREATE TABLE note (id serial PRIMARY KEY, content text NOT NULL)"))
         connection.execute(text("INSERT INTO note (content) VALUES ('hello')"))
-    assert migrate(db.engine()) == ["001_baseline"]
+    assert migrate(db.engine()) == ALL_VERSIONS
     with db.engine().connect() as connection:
         assert connection.execute(text("SELECT content FROM note")).scalars().all() == ["hello"]
 
@@ -73,3 +76,16 @@ def test_migration_files_are_ordered() -> None:
 def test_admin_migrate(capsys: pytest.CaptureFixture[str]) -> None:
     main(["migrate"])
     assert capsys.readouterr().out == "Up to date.\n"
+
+
+@pytest.mark.usefixtures("database")
+def test_tags_default_to_empty() -> None:
+    with db.engine().begin() as connection:
+        connection.execute(text("INSERT INTO note (content) VALUES ('x')"))
+        assert connection.execute(text("SELECT tags FROM note")).scalar_one() == []
+
+
+@pytest.mark.usefixtures("database")
+def test_revision_requires_existing_note() -> None:
+    with pytest.raises(IntegrityError), db.engine().begin() as connection:
+        connection.execute(text("INSERT INTO note_revision (note_id, content) VALUES (42, 'x')"))

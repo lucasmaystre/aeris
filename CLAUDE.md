@@ -39,6 +39,8 @@ Don't mix syntax from other major versions.
 
 - The server owns every database query and all business logic. The CLI is a thin HTTP client.
 - Routes (web and `/api`) are thin wrappers around the service layer.
+- Service functions (`aeris_server/notes.py`) take a `Session` and commit their own writes; routes
+  never manage transactions.
 - `server/pyproject.toml` lists runtime dependencies only; dev tools go in the root `dev` group.
   Everything in `server/` is bundled into the Vercel function.
 
