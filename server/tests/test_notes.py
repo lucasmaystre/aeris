@@ -15,9 +15,11 @@ from aeris_server.notes import (
     append_note,
     create_note,
     delete_note,
+    export_notes,
     get_note,
     get_notes,
     list_notes,
+    list_tags,
     recompute_tags,
     search_notes,
     update_note,
@@ -132,6 +134,39 @@ def test_list_notes_without_content() -> None:
         [note] = list_notes(session, content=False)
     assert note.content is None
     assert note.title == "Title"
+
+
+# Tags and export.
+
+
+@pytest.mark.usefixtures("database")
+def test_list_tags() -> None:
+    _add("A", tags=["work", "project/aeris"])
+    _add("B", tags=["project", "work"])
+    _add("C", tags=["work"])
+    _add("Gone", tags=["secret", "work"], deleted=True)
+    with db.session() as session:
+        tags = [(t.tag, t.count) for t in list_tags(session)]
+    assert tags == [("project", 1), ("project/aeris", 1), ("work", 3)]
+
+
+@pytest.mark.usefixtures("database")
+def test_list_tags_empty() -> None:
+    _add("Untagged")
+    with db.session() as session:
+        assert list_tags(session) == []
+
+
+@pytest.mark.usefixtures("database")
+def test_export_notes() -> None:
+    first = _add("First", created=5)
+    gone = _add("Gone", deleted=True)
+    with db.session() as session:
+        notes = export_notes(session)
+    assert [(n.id, n.content, n.deleted) for n in notes] == [
+        (first, "First", False),
+        (gone, "Gone", True),
+    ]
 
 
 # Search.

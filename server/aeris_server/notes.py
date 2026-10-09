@@ -38,6 +38,11 @@ class SearchHit(BaseModel):
     score: float | None  # Semantic search only.
 
 
+class TagCount(BaseModel):
+    tag: str
+    count: int
+
+
 class NoteNotFound(Exception):
     def __init__(self, note_id: int) -> None:
         super().__init__(f"No note with id {note_id}.")
@@ -129,6 +134,18 @@ def search_notes(
                 )
             )
     return hits
+
+
+def list_tags(session: Session) -> list[TagCount]:
+    """Every tag on a live note, alphabetically, with how many notes carry it."""
+    tag = func.unnest(Note.tags).label("tag")
+    query = select(tag, func.count()).where(Note.deleted.is_(False)).group_by(tag).order_by(tag)
+    return [TagCount(tag=name, count=count) for name, count in session.execute(query)]
+
+
+def export_notes(session: Session) -> list[NoteData]:
+    """Every note, including deleted ones, ordered by ID. For backups."""
+    return [_to_data(note) for note in session.scalars(select(Note).order_by(Note.id))]
 
 
 def create_note(session: Session, content: str) -> NoteData:
