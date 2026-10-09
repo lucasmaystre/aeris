@@ -2,7 +2,7 @@
 
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5 pb-4 border-b border-base-300">
     <div class="flex-1 min-w-0 text-sm opacity-60">
-      #{{ note.id }} · created {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+      #{{ note.id }} · created {{ note.created_at | time_tag }}
       {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | ago }}{% endif %}
     </div>
     <div class="join">

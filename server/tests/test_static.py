@@ -11,6 +11,7 @@ client = TestClient(app)
     [
         ("/static/app.css", "text/css"),
         ("/static/htmx.min.js", "text/javascript"),
+        ("/static/app.js", "text/javascript"),
     ],
 )
 def test_static_file(path: str, content_type: str) -> None:
@@ -31,4 +32,5 @@ def test_pages_load_nothing_from_cdns() -> None:
     html = client.get("/login").text
     assert '<link rel="stylesheet" href="/static/app.css">' in html
     assert '<script src="/static/htmx.min.js"></script>' in html
+    assert '<script src="/static/app.js"></script>' in html
     assert "cdn." not in html and "https://" not in html

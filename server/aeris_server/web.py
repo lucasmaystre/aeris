@@ -8,6 +8,7 @@ import markdown2
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from sqlalchemy.orm import Session
 
 from aeris_server import auth, notes
@@ -42,6 +43,12 @@ def ago(moment: datetime, now: datetime | None = None) -> str:
     return "just now"
 
 
+def time_tag(moment: datetime) -> Markup:
+    """A <time> element in UTC; app.js rewrites it into the viewer's timezone."""
+    utc = moment.astimezone(UTC)
+    return Markup(f'<time datetime="{utc.isoformat()}">{utc:%Y-%m-%d %H:%M} UTC</time>')
+
+
 def render_markdown(content: str) -> str:
     # Escape raw HTML: agents write notes too, possibly with text copied from the web.
     return markdown2.markdown(content, extras=_MARKDOWN_EXTRAS, safe_mode="escape")
@@ -49,6 +56,7 @@ def render_markdown(content: str) -> str:
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["ago"] = ago
+templates.env.filters["time_tag"] = time_tag
 templates.env.filters["preview"] = preview
 router = APIRouter()
 

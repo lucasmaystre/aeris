@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from aeris_server import db, notes
 from aeris_server.app import app
 from aeris_server.auth import COOKIE_NAME
-from aeris_server.web import CONFLICT_MESSAGE, ago, render_markdown
+from aeris_server.web import CONFLICT_MESSAGE, ago, render_markdown, time_tag
 
 pytestmark = pytest.mark.usefixtures("api_tokens")
 
@@ -97,6 +97,13 @@ def test_ago(delta: timedelta, expected: str) -> None:
     assert ago(now - delta, now) == expected
 
 
+def test_time_tag_is_utc() -> None:
+    moment = datetime(2026, 10, 9, 19, 59, tzinfo=timezone(timedelta(hours=1)))
+    assert time_tag(moment) == (
+        '<time datetime="2026-10-09T18:59:00+00:00">2026-10-09 18:59 UTC</time>'
+    )
+
+
 def test_render_markdown_escapes_html() -> None:
     html = render_markdown(
         "# Title\n\n<script>alert(1)</script> and **bold**\n\n```\n<b>code</b>\n```"
@@ -144,6 +151,7 @@ def test_note_detail(browser: TestClient) -> None:
     note = _create("# Heading\n\n<script>x</script>")
     rendered = browser.get(f"/notes/{note.id}").text
     assert "<h1>Heading</h1>" in rendered
+    assert f'<time datetime="{note.created_at.astimezone(UTC).isoformat()}">' in rendered
     assert "&lt;script&gt;" in rendered
     raw = browser.get(f"/notes/{note.id}?mode=raw").text
     assert "# Heading" in raw
