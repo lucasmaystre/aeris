@@ -12,7 +12,9 @@ TIMEOUT_SECONDS = 30  # Generous: the first request after a while wakes the serv
 
 
 class AerisError(Exception):
-    pass
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status  # The HTTP status, if the server answered.
 
 
 class Client:
@@ -58,14 +60,36 @@ class Client:
         """Every tag in use, alphabetically, with note counts."""
         return self._get("/api/tags", {})
 
+    def create_note(self, content: str) -> dict[str, Any]:
+        return self._request("POST", "/api/notes", json={"content": content})
+
+    def append_note(self, note_id: int, text: str) -> dict[str, Any]:
+        """Add text to the end of a note as a new paragraph. Never conflicts."""
+        return self._request("POST", f"/api/notes/{note_id}/append", json={"text": text})
+
+    def delete_note(self, note_id: int) -> None:
+        self._request("DELETE", f"/api/notes/{note_id}")
+
     def _get(self, path: str, params: dict[str, str | int]) -> dict[str, Any]:
+        return self._request("GET", path, params=params)
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, str | int] | None = None,
+        json: dict[str, Any] | None = None,
+    ) -> Any:
         try:
-            response = self._http.get(path, params=params, headers=self._headers)
+            response = self._http.request(
+                method, path, params=params, json=json, headers=self._headers
+            )
         except httpx.HTTPError as error:
             raise AerisError(f"Could not reach {self._url}: {error}") from error
         if response.is_error:
-            raise AerisError(_error_message(response))
-        return response.json()
+            raise AerisError(_error_message(response), status=response.status_code)
+        return response.json() if response.content else None
 
 
 def _error_message(response: httpx.Response) -> str:

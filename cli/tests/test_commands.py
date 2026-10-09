@@ -1,7 +1,9 @@
 import json
+import sys
 import time
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -43,16 +45,27 @@ UNTITLED = _note(3, "", ["a", "b"], "2026-09-01T00:00:00Z", "2026-09-01T00:00:00
 
 
 class FakeServer:
-    """Records requests and answers with a canned response."""
+    """Records requests and answers with queued responses, then with a default one."""
 
     def __init__(self) -> None:
         self.requests: list[httpx.Request] = []
+        self.queue: list[tuple[int, Any]] = []
         self.status = 200
         self.body: Any = {"notes": [], "missing": []}
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
-        return httpx.Response(self.status, json=self.body)
+        status, body = self.queue.pop(0) if self.queue else (self.status, self.body)
+        if body is None:
+            return httpx.Response(status)
+        return httpx.Response(status, json=body)
+
+    @property
+    def sent(self) -> tuple[str, str, Any]:
+        """Method, path and JSON body of the last request."""
+        request = self.requests[-1]
+        body = json.loads(request.content) if request.content else None
+        return request.method, request.url.path, body
 
     @property
     def params(self) -> dict[str, str]:
@@ -264,6 +277,116 @@ def test_tags_empty_and_json(server: FakeServer) -> None:
     assert runner.invoke(app, ["tags"]).stdout == ""
     server.body = _tags(("work", 2))
     assert json.loads(runner.invoke(app, ["tags", "--json"]).stdout) == server.body
+
+
+# Writing: add, append, delete.
+
+
+@pytest.fixture
+def editor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Pretend to be in a terminal, with an "editor" that writes the contents of a file."""
+    text_file = tmp_path / "typed.txt"
+    script = tmp_path / "editor.py"
+    script.write_text(
+        "import pathlib, sys\n"
+        f"typed = pathlib.Path({str(text_file)!r}).read_text()\n"
+        "pathlib.Path(sys.argv[-1]).write_text(typed)\n"
+    )
+    monkeypatch.setattr(main, "_interactive", lambda: True)
+    monkeypatch.delenv("VISUAL", raising=False)
+    monkeypatch.setenv("EDITOR", f"{sys.executable} {script} --some-flag")
+    return text_file
+
+
+def test_add_message(server: FakeServer) -> None:
+    server.body = NOTE_12
+    result = runner.invoke(app, ["add", "-m", "Twelve"])
+    assert (result.exit_code, result.stdout) == (0, "Created note 12.\n")
+    assert server.sent == ("POST", "/api/notes", {"content": "Twelve"})
+
+
+def test_add_stdin(server: FakeServer) -> None:
+    server.body = NOTE_12
+    result = runner.invoke(app, ["add"], input="Piped\ntext\n")
+    assert result.exit_code == 0
+    assert server.sent[2] == {"content": "Piped\ntext\n"}
+
+
+def test_add_editor(server: FakeServer, editor: Path) -> None:
+    editor.write_text("# From the editor\n")
+    server.body = NOTE_12
+    result = runner.invoke(app, ["add"])
+    assert result.exit_code == 0
+    assert server.sent[2] == {"content": "# From the editor\n"}
+
+
+def test_add_editor_emptied(server: FakeServer, editor: Path) -> None:
+    editor.write_text("  \n")
+    result = runner.invoke(app, ["add"])
+    assert (result.exit_code, result.stdout) == (0, "Empty note, nothing saved.\n")
+    assert server.requests == []
+
+
+def test_add_editor_fails(server: FakeServer, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(main, "_interactive", lambda: True)
+    monkeypatch.setenv("VISUAL", "false")
+    result = runner.invoke(app, ["add"])
+    assert result.exit_code == 1
+    assert result.stderr.startswith("Error: the editor failed")
+    assert server.requests == []
+
+
+@pytest.mark.parametrize(("args", "stdin"), [(["-m", " "], None), ([], ""), ([], "\n\n")])
+def test_add_no_text(server: FakeServer, args: list[str], stdin: str | None) -> None:
+    result = runner.invoke(app, ["add", *args], input=stdin)
+    assert result.exit_code == 1
+    assert result.stderr == f"Error: {main.NO_TEXT}\n"
+    assert server.requests == []
+
+
+def test_add_json(server: FakeServer) -> None:
+    server.body = NOTE_12
+    result = runner.invoke(app, ["add", "-m", "Twelve", "--json"])
+    assert json.loads(result.stdout) == NOTE_12
+
+
+def test_append(server: FakeServer) -> None:
+    server.body = NOTE_7
+    result = runner.invoke(app, ["append", "7", "-m", "More"])
+    assert (result.exit_code, result.stdout) == (0, "Appended to note 7.\n")
+    assert server.sent == ("POST", "/api/notes/7/append", {"text": "More"})
+    assert json.loads(runner.invoke(app, ["append", "7", "-m", "x", "--json"]).stdout) == NOTE_7
+
+
+def test_append_editor(server: FakeServer, editor: Path) -> None:
+    server.body = NOTE_7
+    editor.write_text("From the editor")
+    assert runner.invoke(app, ["append", "7"]).exit_code == 0
+    assert server.sent[2] == {"text": "From the editor"}
+
+
+def test_append_no_text(server: FakeServer) -> None:
+    result = runner.invoke(app, ["append", "7"], input="")
+    assert (result.exit_code, result.stderr) == (1, f"Error: {main.NO_TEXT}\n")
+
+
+def test_append_missing_note(server: FakeServer) -> None:
+    server.status, server.body = 404, {"detail": "No note with id 99."}
+    result = runner.invoke(app, ["append", "99", "-m", "x"])
+    assert (result.exit_code, result.stderr) == (1, "Error: No note with id 99. (HTTP 404)\n")
+
+
+def test_delete(server: FakeServer) -> None:
+    server.status, server.body = 204, None
+    result = runner.invoke(app, ["delete", "7"])
+    assert (result.exit_code, result.stdout) == (0, "Deleted note 7.\n")
+    assert server.sent == ("DELETE", "/api/notes/7", None)
+
+
+def test_delete_missing_note(server: FakeServer) -> None:
+    server.status, server.body = 404, {"detail": "No note with id 99."}
+    result = runner.invoke(app, ["delete", "99"])
+    assert (result.exit_code, result.stderr) == (1, "Error: No note with id 99. (HTTP 404)\n")
 
 
 # Errors.

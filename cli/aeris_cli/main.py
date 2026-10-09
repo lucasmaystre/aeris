@@ -1,11 +1,17 @@
 """The `aeris` command: notes from the terminal, for humans and agents (`--json`)."""
 
 import json
+import os
 import re
+import shlex
+import subprocess
+import sys
+import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from enum import StrEnum
+from pathlib import Path
 from typing import Annotated, Any
 
 import typer
@@ -16,6 +22,11 @@ from aeris_cli.config import ConfigError, load_config
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 JsonOption = Annotated[bool, typer.Option("--json", help="Print the API's JSON response.")]
+MessageOption = Annotated[
+    str | None,
+    typer.Option("--message", "-m", help="The text. Otherwise read from stdin or your editor."),
+]
+NO_TEXT = "No text to save: pass -m TEXT, pipe text in, or run in a terminal to use your editor."
 
 _DURATION = re.compile(r"\s*(\d+)\s*(m|mins?|minutes?|h|hours?|d|days?|w|weeks?)\s*", re.IGNORECASE)
 _UNITS = {"m": "minutes", "h": "hours", "d": "days", "w": "weeks"}
@@ -125,6 +136,84 @@ def show(
         typer.echo(f"No note with id {note_id}.", err=True)
     if data["missing"]:
         raise typer.Exit(1)
+
+
+@app.command()
+def add(message: MessageOption = None, json_output: JsonOption = False) -> None:
+    """Create a note."""
+    content = _input_text(message)
+    with _errors():
+        note = make_client().create_note(content)
+    if json_output:
+        _print_json(note)
+    else:
+        typer.echo(f"Created note {note['id']}.")
+
+
+@app.command()
+def append(
+    note_id: Annotated[int, typer.Argument(help="The note to add to.")],
+    message: MessageOption = None,
+    json_output: JsonOption = False,
+) -> None:
+    """Add text to the end of a note, as a new paragraph."""
+    text = _input_text(message)
+    with _errors():
+        note = make_client().append_note(note_id, text)
+    if json_output:
+        _print_json(note)
+    else:
+        typer.echo(f"Appended to note {note_id}.")
+
+
+@app.command()
+def delete(note_id: Annotated[int, typer.Argument(help="The note to delete.")]) -> None:
+    """Delete a note."""
+    with _errors():
+        make_client().delete_note(note_id)
+    typer.echo(f"Deleted note {note_id}.")
+
+
+def edit_in_editor(initial: str = "") -> str:
+    """Open `$VISUAL` or `$EDITOR` (else vi) on a temporary file, and return what was saved."""
+    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "vi"
+    fd, path = tempfile.mkstemp(suffix=".md")
+    try:
+        with os.fdopen(fd, "w") as file:
+            file.write(initial)
+        subprocess.run([*shlex.split(editor), path], check=True)
+        return Path(path).read_text()
+    finally:
+        os.unlink(path)
+
+
+def _interactive() -> bool:
+    return sys.stdin.isatty()
+
+
+def _input_text(message: str | None) -> str:
+    """Text from `-m`, else piped stdin, else the editor in an interactive terminal.
+
+    Exits without saving if the text is empty: quietly if the user emptied the editor, with an
+    error otherwise (e.g. an agent that passed nothing).
+    """
+    if message is not None:
+        text = message
+    elif not _interactive():
+        text = sys.stdin.read()
+    else:
+        try:
+            text = edit_in_editor()
+        except (OSError, subprocess.CalledProcessError) as error:
+            typer.echo(f"Error: the editor failed ({error}); nothing saved.", err=True)
+            raise typer.Exit(1) from error
+        if not text.strip():
+            typer.echo("Empty note, nothing saved.")
+            raise typer.Exit(0)
+    if not text.strip():
+        typer.echo(f"Error: {NO_TEXT}", err=True)
+        raise typer.Exit(1)
+    return text
 
 
 @contextmanager
