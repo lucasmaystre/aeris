@@ -6,8 +6,20 @@ from sqlalchemy import select
 
 from aeris_server import db
 from aeris_server.admin import main
-from aeris_server.db import Note
-from aeris_server.notes import get_note, get_notes, list_notes, recompute_tags
+from aeris_server.db import Note, NoteRevision
+from aeris_server.notes import (
+    EmptyContent,
+    NoteNotFound,
+    StaleNote,
+    append_note,
+    create_note,
+    delete_note,
+    get_note,
+    get_notes,
+    list_notes,
+    recompute_tags,
+    update_note,
+)
 
 T0 = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -120,6 +132,105 @@ def test_list_notes_without_content() -> None:
     assert note.title == "Title"
 
 
+# Writes.
+
+
+def _revisions(note_id: int) -> list[str]:
+    with db.session() as session:
+        query = select(NoteRevision.content).where(NoteRevision.note_id == note_id)
+        return list(session.scalars(query.order_by(NoteRevision.id)))
+
+
+@pytest.mark.usefixtures("database")
+def test_create_note() -> None:
+    with db.session() as session:
+        note = create_note(session, "\n  # Plan\n\nTags: #b, #a\n  ")
+    assert (note.title, note.tags, note.content) == ("Plan", ["a", "b"], "# Plan\n\nTags: #b, #a")
+    assert note.created_at == note.updated_at
+    with db.session() as session:
+        assert get_note(session, note.id) == note
+
+
+@pytest.mark.usefixtures("database")
+def test_create_note_empty() -> None:
+    with db.session() as session, pytest.raises(EmptyContent):
+        create_note(session, " \n ")
+
+
+@pytest.mark.usefixtures("database")
+def test_update_note() -> None:
+    note_id = _add("Old")
+    with db.session() as session:
+        note = update_note(session, note_id, "New\nTags: #x", expected_updated_at=T0)
+    assert (note.content, note.tags) == ("New\nTags: #x", ["x"])
+    assert note.updated_at > T0
+    assert note.created_at == T0
+    assert _revisions(note_id) == ["Old"]
+
+
+@pytest.mark.usefixtures("database")
+def test_update_note_unchanged() -> None:
+    note_id = _add("Same")
+    with db.session() as session:
+        note = update_note(session, note_id, "  Same\n")
+    assert note.updated_at == T0
+    assert _revisions(note_id) == []
+
+
+@pytest.mark.usefixtures("database")
+def test_update_note_stale() -> None:
+    note_id = _add("Old", updated=3)
+    with db.session() as session, pytest.raises(StaleNote) as error:
+        update_note(session, note_id, "New", expected_updated_at=T0)
+    assert error.value.current.content == "Old"
+    assert error.value.current.updated_at == T0 + timedelta(days=3)
+    assert _get(note_id).content == "Old"
+
+
+@pytest.mark.usefixtures("database")
+def test_update_note_errors() -> None:
+    deleted = _add("Gone", deleted=True)
+    with db.session() as session:
+        with pytest.raises(NoteNotFound):
+            update_note(session, deleted, "New")
+        with pytest.raises(NoteNotFound):
+            update_note(session, 9999, "New")
+        with pytest.raises(EmptyContent):
+            update_note(session, _add("Live"), "  ")
+
+
+@pytest.mark.usefixtures("database")
+def test_append_note() -> None:
+    note_id = _add("Start\n")
+    with db.session() as session:
+        note = append_note(session, note_id, "\nMore\nTags: #added\n")
+    assert note.content == "Start\n\nMore\nTags: #added"
+    assert note.tags == ["added"]
+    assert note.updated_at > T0
+    assert _revisions(note_id) == ["Start\n"]
+
+
+@pytest.mark.usefixtures("database")
+def test_append_note_errors() -> None:
+    with db.session() as session:
+        with pytest.raises(NoteNotFound):
+            append_note(session, 9999, "More")
+        with pytest.raises(EmptyContent):
+            append_note(session, _add("Live"), "")
+
+
+@pytest.mark.usefixtures("database")
+def test_delete_note() -> None:
+    note_id = _add("Doomed")
+    with db.session() as session:
+        delete_note(session, note_id)
+        assert get_note(session, note_id) is None
+        assert list_notes(session) == []
+        with pytest.raises(NoteNotFound):
+            delete_note(session, note_id)
+    assert _get(note_id).updated_at == T0
+
+
 # Tags backfill.
 
 
@@ -139,7 +250,7 @@ def test_recompute_tags() -> None:
     assert _get(untagged).tags == []
     with db.session() as session:
         assert recompute_tags(session) == 0
-        assert session.scalars(select(db.NoteRevision)).all() == []
+        assert session.scalars(select(NoteRevision)).all() == []
 
 
 @pytest.mark.usefixtures("database")

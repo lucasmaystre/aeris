@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from aeris_server.db import Note
+from aeris_server.db import Note, NoteRevision
 from aeris_server.parsing import extract_tags, title
 
 Order = Literal["created", "updated"]
@@ -24,6 +24,25 @@ class NoteData(BaseModel):
     updated_at: datetime
     content: str | None  # None when the caller asked for no content.
     deleted: bool
+
+
+class NoteNotFound(Exception):
+    def __init__(self, note_id: int) -> None:
+        super().__init__(f"No note with id {note_id}.")
+        self.note_id = note_id
+
+
+class EmptyContent(ValueError):
+    def __init__(self) -> None:
+        super().__init__("Note content cannot be empty.")
+
+
+class StaleNote(Exception):
+    """The note changed since the caller loaded it. `current` is its latest version."""
+
+    def __init__(self, current: NoteData) -> None:
+        super().__init__(f"Note {current.id} was changed at {current.updated_at.isoformat()}.")
+        self.current = current
 
 
 def get_note(session: Session, note_id: int) -> NoteData | None:
@@ -75,6 +94,51 @@ def list_notes(
     return [_to_data(note, content=content) for note in session.scalars(query)]
 
 
+def create_note(session: Session, content: str) -> NoteData:
+    content = _clean(content)
+    note = Note(content=content, tags=extract_tags(content))
+    session.add(note)
+    session.commit()
+    return _to_data(note)
+
+
+def update_note(
+    session: Session, note_id: int, content: str, expected_updated_at: datetime | None = None
+) -> NoteData:
+    """Replace a note's content, keeping the old content as a revision.
+
+    If `expected_updated_at` is given and the note has changed since, raises `StaleNote`. Saving
+    unchanged content does nothing.
+    """
+    content = _clean(content)
+    note = _lock(session, note_id)
+    if expected_updated_at is not None and note.updated_at != expected_updated_at:
+        current = _to_data(note)
+        session.rollback()
+        raise StaleNote(current)
+    if content == note.content:
+        unchanged = _to_data(note)
+        session.rollback()
+        return unchanged
+    _replace(session, note, content)
+    return _to_data(note)
+
+
+def append_note(session: Session, note_id: int, text: str) -> NoteData:
+    """Add text to the end of a note, as a new paragraph. Never conflicts."""
+    text = _clean(text)
+    note = _lock(session, note_id)
+    _replace(session, note, f"{note.content.rstrip()}\n\n{text}")
+    return _to_data(note)
+
+
+def delete_note(session: Session, note_id: int) -> None:
+    """Soft-delete a note."""
+    note = _lock(session, note_id)
+    note.deleted = True
+    session.commit()
+
+
 def recompute_tags(session: Session) -> int:
     """Recompute every note's tags from its content. Returns the number of notes changed.
 
@@ -88,6 +152,31 @@ def recompute_tags(session: Session) -> int:
             changed += 1
     session.commit()
     return changed
+
+
+def _clean(content: str) -> str:
+    content = content.strip()
+    if not content:
+        raise EmptyContent()
+    return content
+
+
+def _lock(session: Session, note_id: int) -> Note:
+    """Load a live note and lock its row until the transaction ends."""
+    query = select(Note).where(Note.id == note_id).with_for_update()
+    note = session.scalars(query.execution_options(populate_existing=True)).one_or_none()
+    if note is None or note.deleted:
+        session.rollback()
+        raise NoteNotFound(note_id)
+    return note
+
+
+def _replace(session: Session, note: Note, content: str) -> None:
+    session.add(NoteRevision(note_id=note.id, content=note.content))
+    note.content = content
+    note.tags = extract_tags(content)
+    note.updated_at = func.now()
+    session.commit()
 
 
 def _to_data(note: Note, *, content: bool = True) -> NoteData:
