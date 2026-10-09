@@ -69,6 +69,7 @@ dependencies = [
     { name = "markdown2", extra = ["all"] },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
+    { name = "python-multipart" },
     { name = "sqlalchemy" },
 ]
 
@@ -79,6 +80,7 @@ requires-dist = [
     { name = "markdown2", extras = ["all"], specifier = ">=2.5.5" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
     { name = "pydantic", specifier = ">=2.13.3" },
+    { name = "python-multipart", specifier = ">=0.0.26" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
 ]
 

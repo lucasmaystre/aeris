@@ -9,6 +9,7 @@ dependencies = [
     "markdown2[all]>=2.5.5",
     "psycopg[binary]>=3.3.3",
     "pydantic>=2.13.3",
+    "python-multipart>=0.0.26",
     "sqlalchemy>=2.0.49",
 ]
 
