@@ -134,7 +134,9 @@ def index(request: Request, token: WebReader) -> HTMLResponse:
 
 @router.get("/notes", dependencies=READ)
 def note_list(request: Request, session: SessionDep) -> HTMLResponse:
-    return _partial(request, "note_list.html", notes=notes.list_notes(session))
+    return _partial(
+        request, "note_list.html", notes=notes.list_notes(session), tags=notes.list_tags(session)
+    )
 
 
 # Before `/notes/{note_id}`, which would otherwise match `new`.

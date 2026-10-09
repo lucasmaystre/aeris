@@ -21,7 +21,8 @@ function localizeTimes(root) {
 htmx.onLoad(localizeTimes);
 
 // Search: filter the sidebar as you type, ignoring case, accents and whitespace runs. The steps
-// mirror `normalize` in server/aeris_server/parsing.py: change them together.
+// mirror `normalize` in server/aeris_server/parsing.py: change them together. Words starting
+// with `#` filter by tag instead, like the server's tag filter: `#project` matches `project/aeris`.
 
 const SNIPPET_LENGTH = 120;
 const searchIndex = new WeakMap(); // Sidebar item -> its text, normalized, with origins.
@@ -73,11 +74,31 @@ function snippetNodes(entry, start, length) {
   ];
 }
 
+// Split the search box into tag filters (`#word`, lowercased) and the text phrase.
+function parseQuery(value) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  const isTag = (word) => word.startsWith("#") && word.length > 1;
+  return {
+    tags: words.filter(isTag).map((word) => word.slice(1).toLowerCase()),
+    phrase: normalize(words.filter((word) => !isTag(word)).join(" ")).trim(),
+  };
+}
+
+function hasTags(item, tags) {
+  const own = item.dataset.tags ? item.dataset.tags.split(" ") : [];
+  return tags.every((tag) => own.some((t) => t === tag || t.startsWith(tag + "/")));
+}
+
 function applySearch() {
   const input = document.getElementById("search");
   const list = document.getElementById("note-list");
   if (!input || !list) return;
-  const query = normalize(input.value).trim();
+  const { tags, phrase: query } = parseQuery(input.value);
+  for (const chip of document.querySelectorAll(".tag-chip[data-tag]")) {
+    const active = tags.includes(chip.dataset.tag);
+    chip.classList.toggle("badge-primary", active);
+    chip.classList.toggle("badge-secondary", !active);
+  }
   let shown = 0;
   for (const item of list.querySelectorAll("li[data-text]")) {
     let entry = searchIndex.get(item);
@@ -86,7 +107,7 @@ function applySearch() {
       searchIndex.set(item, entry);
     }
     const at = query ? entry.normalized.indexOf(query) : -1;
-    const matches = !query || at >= 0;
+    const matches = (!query || at >= 0) && hasTags(item, tags);
     item.hidden = !matches;
     if (matches) shown++;
     const preview = item.querySelector(".preview");
@@ -96,8 +117,28 @@ function applySearch() {
     if (at >= 0) snippet.replaceChildren(...snippetNodes(entry, at, query.length));
   }
   const noMatches = list.querySelector(".no-matches");
-  if (noMatches) noMatches.hidden = !query || shown > 0;
+  if (noMatches) noMatches.hidden = (!query && !tags.length) || shown > 0;
 }
+
+// Add `#tag` to the search box, or remove it if it's there, then filter.
+function toggleTag(tag) {
+  const input = document.getElementById("search");
+  if (!input) return;
+  const words = input.value.trim().split(/\s+/).filter(Boolean);
+  const word = "#" + tag;
+  const present = words.some((w) => w.toLowerCase() === word);
+  const kept = present ? words.filter((w) => w.toLowerCase() !== word) : [...words, word];
+  input.value = kept.join(" ");
+  applySearch();
+}
+
+// Tag chips in the sidebar and tags in the note view.
+document.addEventListener("click", (event) => {
+  const tag = event.target.closest("[data-tag]");
+  if (!tag) return;
+  event.preventDefault();
+  toggleTag(tag.dataset.tag);
+});
 
 document.addEventListener("input", (event) => {
   if (event.target.id === "search") applySearch();

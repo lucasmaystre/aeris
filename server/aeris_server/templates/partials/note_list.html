@@ -1,7 +1,16 @@
+{% if tags %}
+<div class="flex flex-wrap gap-1 px-3 pb-2">
+  {% for tag in tags %}
+  <button type="button" class="tag-chip badge badge-sm badge-secondary cursor-pointer" data-tag="{{ tag.tag }}">
+    #{{ tag.tag }} <span class="opacity-60">{{ tag.count }}</span>
+  </button>
+  {% endfor %}
+</div>
+{% endif %}
 <ul id="note-list" class="menu w-full px-2 pt-0 gap-0.5">
   {% for note in notes %}
   {% set text = note.content | preview %}
-  <li data-text="{{ note.content }}">
+  <li data-text="{{ note.content }}" data-tags="{{ note.tags | join(' ') }}">
     <a class="flex flex-col items-stretch gap-1 py-2 cursor-pointer"
        hx-get="/notes/{{ note.id }}"
        hx-target="#main-panel"

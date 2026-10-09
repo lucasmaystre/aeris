@@ -34,7 +34,7 @@
     </button>
     {% if note.tags %}
     <div class="w-full flex flex-wrap gap-1">
-      {% for tag in note.tags %}<span class="badge badge-sm badge-secondary">#{{ tag }}</span>{% endfor %}
+      {% for tag in note.tags %}<button type="button" class="badge badge-sm badge-secondary cursor-pointer" data-tag="{{ tag }}" title="Filter the list by #{{ tag }}">#{{ tag }}</button>{% endfor %}
     </div>
     {% endif %}
   </div>
