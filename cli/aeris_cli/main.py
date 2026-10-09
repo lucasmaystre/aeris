@@ -62,12 +62,47 @@ def list_notes(
     if json_output:
         _print_json(data)
         return
-    notes = data["notes"]
-    width = max((len(str(note["id"])) for note in notes), default=0)
-    for note in notes:
-        when = _local(note[f"{order.value}_at"])
-        tags = "".join(f"  #{tag}" for tag in note["tags"])
-        typer.echo(f"{note['id']:>{width}}  {when}  {note['title'] or '(untitled)'}{tags}")
+    width = _id_width(data["notes"])
+    for note in data["notes"]:
+        typer.echo(_summary(note, width, f"{order.value}_at"))
+
+
+@app.command()
+def search(
+    query: Annotated[list[str], typer.Argument(help="Words to find, as one phrase.")],
+    tag: Annotated[
+        str | None, typer.Option(help="Only notes with this tag or its children.")
+    ] = None,
+    limit: Annotated[int, typer.Option(min=1, help="How many notes to show.")] = 30,
+    json_output: JsonOption = False,
+) -> None:
+    """Find notes containing a phrase, ignoring case and accents."""
+    phrase = " ".join(query)
+    with _errors():
+        data = make_client().search(phrase, tag=tag, limit=limit)
+    if json_output:
+        _print_json(data)
+        return
+    if not data["hits"]:
+        typer.echo(f"No notes match {phrase!r}.", err=True)
+    width = _id_width(data["hits"])
+    indent = " " * (width + 20)  # Lines the snippet up with the title.
+    for hit in data["hits"]:
+        typer.echo(_summary(hit, width, "created_at"))
+        typer.echo(indent + hit["snippet"])
+
+
+@app.command()
+def tags(json_output: JsonOption = False) -> None:
+    """List tags with how many notes carry each."""
+    with _errors():
+        data = make_client().list_tags()
+    if json_output:
+        _print_json(data)
+        return
+    width = max((len(str(tag["count"])) for tag in data["tags"]), default=0)
+    for tag in data["tags"]:
+        typer.echo(f"{tag['count']:>{width}}  #{tag['tag']}")
 
 
 @app.command()
@@ -99,6 +134,17 @@ def _errors() -> Iterator[None]:
     except (ConfigError, AerisError) as error:
         typer.echo(f"Error: {error}", err=True)
         raise typer.Exit(1) from error
+
+
+def _id_width(notes: list[dict[str, Any]]) -> int:
+    return max((len(str(note["id"])) for note in notes), default=0)
+
+
+def _summary(note: dict[str, Any], width: int, timestamp_field: str) -> str:
+    """One line per note: ID, local time, title, tags."""
+    tags = "".join(f"  #{tag}" for tag in note["tags"])
+    title = note["title"] or "(untitled)"
+    return f"{note['id']:>{width}}  {_local(note[timestamp_field])}  {title}{tags}"
 
 
 def _local(timestamp: str) -> str:

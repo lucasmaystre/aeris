@@ -13,7 +13,7 @@ from aeris_cli import main
 from aeris_cli.client import Client
 from aeris_cli.config import Config
 from aeris_cli.main import app, parse_since
-from aeris_server.notes import NoteData
+from aeris_server.notes import NoteData, SearchHit, TagCount
 
 runner = CliRunner()
 
@@ -188,6 +188,82 @@ def test_show_json(server: FakeServer) -> None:
 def test_show_needs_ids(server: FakeServer) -> None:
     assert runner.invoke(app, ["show"]).exit_code == 2
     assert runner.invoke(app, ["show", "abc"]).exit_code == 2
+
+
+# search.
+
+
+def _hit(note: dict[str, Any], snippet: str) -> dict[str, Any]:
+    """A search hit as the server serializes it."""
+    fields = {key: note[key] for key in ["id", "title", "tags", "created_at", "updated_at"]}
+    return SearchHit.model_validate({**fields, "snippet": snippet, "score": None}).model_dump(
+        mode="json"
+    )
+
+
+def test_search(server: FakeServer) -> None:
+    server.body = {"hits": [_hit(NOTE_12, "…about twelve…"), _hit(NOTE_7, "Body of seven.")]}
+    result = runner.invoke(app, ["search", "distributed", "systems"])
+    assert result.exit_code == 0
+    assert result.stdout.splitlines() == [
+        "12  2026-10-05 13:30  Twelve",
+        "                      …about twelve…",
+        " 7  2026-10-01 10:00  Seven  #work",
+        "                      Body of seven.",
+    ]
+    assert server.params == {"q": "distributed systems", "limit": "30"}
+    assert server.requests[-1].url.path == "/api/search"
+
+
+def test_search_options(server: FakeServer) -> None:
+    server.body = {"hits": []}
+    runner.invoke(app, ["search", "x", "--tag", "work", "--limit", "3"])
+    assert server.params == {"q": "x", "tag": "work", "limit": "3"}
+
+
+def test_search_no_matches(server: FakeServer) -> None:
+    server.body = {"hits": []}
+    result = runner.invoke(app, ["search", "nothing", "here"])
+    assert (result.exit_code, result.stdout) == (0, "")
+    assert result.stderr == "No notes match 'nothing here'.\n"
+
+
+def test_search_json(server: FakeServer) -> None:
+    server.body = {"hits": [_hit(NOTE_7, "Body of seven.")]}
+    result = runner.invoke(app, ["search", "seven", "--json"])
+    assert json.loads(result.stdout) == server.body
+
+
+def test_search_empty_query(server: FakeServer) -> None:
+    server.status, server.body = 422, {"detail": "Search query cannot be empty."}
+    result = runner.invoke(app, ["search", " "])
+    assert (result.exit_code, result.stderr) == (
+        1,
+        "Error: Search query cannot be empty. (HTTP 422)\n",
+    )
+    assert runner.invoke(app, ["search"]).exit_code == 2
+
+
+# tags.
+
+
+def _tags(*pairs: tuple[str, int]) -> dict[str, Any]:
+    return {"tags": [TagCount(tag=tag, count=count).model_dump() for tag, count in pairs]}
+
+
+def test_tags(server: FakeServer) -> None:
+    server.body = _tags(("project/aeris", 1), ("work", 12))
+    result = runner.invoke(app, ["tags"])
+    assert result.exit_code == 0
+    assert result.stdout.splitlines() == [" 1  #project/aeris", "12  #work"]
+    assert server.requests[-1].url.path == "/api/tags"
+
+
+def test_tags_empty_and_json(server: FakeServer) -> None:
+    server.body = _tags()
+    assert runner.invoke(app, ["tags"]).stdout == ""
+    server.body = _tags(("work", 2))
+    assert json.loads(runner.invoke(app, ["tags", "--json"]).stdout) == server.body
 
 
 # Errors.
