@@ -125,7 +125,7 @@ def test_index(browser: TestClient) -> None:
     response = browser.get("/")
     assert response.status_code == 200
     assert 'hx-get="/notes"' in response.text
-    assert "/static/styles.css" in response.text
+    assert "/static/app.css" in response.text
 
 
 def test_note_list(browser: TestClient) -> None:

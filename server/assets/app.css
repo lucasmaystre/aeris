@@ -4,10 +4,7 @@
 @import "tailwindcss" source(none);
 @source "../aeris_server/templates";
 
-/* Under another name until task 3.3 replaces the hand-written styles.css with it as `prose`. */
-@plugin "@tailwindcss/typography" {
-  className: typography;
-}
+@plugin "@tailwindcss/typography";
 
 /* daisyUI without its built-in themes: only the `aeris` theme below. */
 @plugin "./daisyui.mjs" {
@@ -40,12 +37,6 @@
   --color-error-content: #fefffe;
 }
 
-/* The palette by name, as the templates use it. */
 @theme {
-  --color-white: #fefffe;
-  --color-frozen-water: #e5fcf5;
-  --color-midnight-violet: #210124;
-  --color-dark-amaranth: #750d37;
-  --color-celadon: #b3dec1;
   --font-sans: Helvetica, Arial, sans-serif;
 }

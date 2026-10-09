@@ -1,40 +1,43 @@
-<div class="p-6 max-w-3xl">
+<article class="p-6 max-w-3xl">
 
-  <div class="mb-5 pb-4 border-b border-celadon">
-    <h2 class="text-xl font-semibold text-midnight-violet mb-2">Note #{{ note.id }}</h2>
-    <div class="flex items-center gap-1.5 text-sm text-midnight-violet opacity-50">
-      🗓️
-      <span>{{ note.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5 pb-4 border-b border-base-300">
+    <div class="flex-1 min-w-0 text-sm opacity-60">
+      #{{ note.id }} · created {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+      {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | ago }}{% endif %}
     </div>
-  </div>
-
-  <div class="flex gap-2 mb-5">
-    <button class="text-xs px-2.5 py-1 rounded border {% if mode == 'rendered' %}bg-midnight-violet text-white border-midnight-violet{% else %}border-celadon text-midnight-violet hover:border-midnight-violet{% endif %} transition-colors"
-            hx-get="/notes/{{ note.id }}?mode=rendered"
-            hx-target="#main-panel"
-            hx-swap="innerHTML">
-      Rendered
-    </button>
-    <button class="text-xs px-2.5 py-1 rounded border {% if mode == 'raw' %}bg-midnight-violet text-white border-midnight-violet{% else %}border-celadon text-midnight-violet hover:border-midnight-violet{% endif %} transition-colors"
-            hx-get="/notes/{{ note.id }}?mode=raw"
-            hx-target="#main-panel"
-            hx-swap="innerHTML">
-      Raw
-    </button>
-    <button class="text-xs px-2.5 py-1 rounded border border-celadon text-midnight-violet hover:border-midnight-violet transition-colors"
+    <div class="join">
+      <button class="join-item btn btn-xs {% if mode == 'rendered' %}btn-neutral{% endif %}"
+              hx-get="/notes/{{ note.id }}?mode=rendered"
+              hx-target="#main-panel"
+              hx-swap="innerHTML">
+        Rendered
+      </button>
+      <button class="join-item btn btn-xs {% if mode == 'raw' %}btn-neutral{% endif %}"
+              hx-get="/notes/{{ note.id }}?mode=raw"
+              hx-target="#main-panel"
+              hx-swap="innerHTML">
+        Raw
+      </button>
+    </div>
+    <button class="btn btn-xs btn-outline"
             hx-get="/notes/{{ note.id }}/edit"
             hx-target="#main-panel"
             hx-swap="innerHTML">
       Edit
     </button>
+    {% if note.tags %}
+    <div class="w-full flex flex-wrap gap-1">
+      {% for tag in note.tags %}<span class="badge badge-sm badge-secondary">#{{ tag }}</span>{% endfor %}
+    </div>
+    {% endif %}
   </div>
 
   {% if mode == "raw" %}
-  <pre class="font-mono text-sm text-midnight-violet whitespace-pre-wrap break-words leading-relaxed">{{ note.content }}</pre>
+  <pre class="font-mono text-sm whitespace-pre-wrap break-words leading-relaxed bg-base-200 rounded-box p-4">{{ note.content }}</pre>
   {% else %}
-  <div class="prose text-sm text-midnight-violet leading-relaxed">
+  <div class="prose max-w-none">
     {{ rendered_html | safe }}
   </div>
   {% endif %}
 
-</div>
+</article>

@@ -185,7 +185,14 @@ def update_note(
         return _form(request, note_id, content, expected_updated_at, error=str(error))
     except notes.StaleNote as error:
         # Keep the user's text; a second save deliberately overwrites the newer version.
-        return _form(request, note_id, content, error.current.updated_at, error=CONFLICT_MESSAGE)
+        return _form(
+            request,
+            note_id,
+            content,
+            error.current.updated_at,
+            error=CONFLICT_MESSAGE,
+            conflict=True,
+        )
     response = _detail(request, note)
     response.headers["HX-Trigger"] = "noteUpdated"
     return response
@@ -209,6 +216,7 @@ def _form(
     content: str,
     expected_updated_at: datetime | None,
     error: str | None = None,
+    conflict: bool = False,
 ) -> HTMLResponse:
     return _partial(
         request,
@@ -217,6 +225,7 @@ def _form(
         content=content,
         expected_updated_at=expected_updated_at,
         error=error,
+        conflict=conflict,
     )
 
 

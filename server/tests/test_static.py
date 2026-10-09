@@ -10,7 +10,6 @@ client = TestClient(app)
     ("path", "content_type"),
     [
         ("/static/app.css", "text/css"),
-        ("/static/styles.css", "text/css"),
         ("/static/htmx.min.js", "text/javascript"),
     ],
 )
