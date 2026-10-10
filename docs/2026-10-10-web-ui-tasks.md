@@ -18,6 +18,8 @@ Decisions:
 - Focus: a darker border, no ring, on every field (C.3: the indigo ring from B.1b felt heavy).
 - `/` anywhere outside a text field focuses the search box; a `/` hint shows in the box until it
   has focus or text (C.3). The first piece of keyboard navigation (backlog).
+- Search snippets stay raw Markdown (C.5, dropped): they show exactly what matched, and a plain-text
+  index would stop link URLs and `Tags:` lines from matching, and change the CLI's search.
 - Tags filter through the search box only (C.4): type `#tag`, or click a tag on an open note. The
   tag chips above the list are gone (they don't scale to ~100 tags). A Tags dropdown was built and
   dropped: redundant with the search box, and it squeezed it.
@@ -114,7 +116,7 @@ From C.4 (2026-10-10):
 - [x] C.3 Search box with a visible border (W8, done by the retheme); `/` focuses it
 - [x] C.4 Tags (W9): chips removed; filter by `#tag` in the search box (a dropdown was tried and
   dropped)
-- [ ] C.5 Search snippets as plain text, not raw Markdown (`# Title Tags: …`)
+- [x] C.5 Search snippets as plain text: dropped, raw snippets stay
 
 ## Phase D: Note pane
 
