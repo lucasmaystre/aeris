@@ -89,10 +89,6 @@ class Client:
     def create_note(self, content: str) -> dict[str, Any]:
         return self._request("POST", "/api/notes", json={"content": content})
 
-    def append_note(self, note_id: int, text: str) -> dict[str, Any]:
-        """Add text to the end of a note as a new paragraph. Never conflicts."""
-        return self._request("POST", f"/api/notes/{note_id}/append", json={"text": text})
-
     def delete_note(self, note_id: int) -> None:
         self._request("DELETE", f"/api/notes/{note_id}")
 

@@ -13,7 +13,6 @@ from aeris_server.db import Note, NoteEmbedding
 from aeris_server.embeddings import EmbeddingError
 from aeris_server.notes import (
     EmptyQuery,
-    append_note,
     create_note,
     delete_note,
     reindex,
@@ -82,13 +81,12 @@ def test_create_embeds(embedder: FakeEmbedder) -> None:
 
 
 @pytest.mark.usefixtures("database")
-def test_update_and_append_reembed(embedder: FakeEmbedder) -> None:
+def test_update_reembeds(embedder: FakeEmbedder) -> None:
     with db.session() as session:
         note = create_note(session, "One")
         update_note(session, note.id, "Two!")
-        append_note(session, note.id, "Three")
-    assert embedder.calls == [["One"], ["Two!"], ["Two!\n\nThree"]]
-    assert _stored(note.id) == (MODEL, _sha("Two!\n\nThree"), [11.0, 1.0])
+    assert embedder.calls == [["One"], ["Two!"]]
+    assert _stored(note.id) == (MODEL, _sha("Two!"), [4.0, 1.0])
 
 
 @pytest.mark.usefixtures("database")

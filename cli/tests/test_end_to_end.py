@@ -49,9 +49,6 @@ def test_scenario(monkeypatch: pytest.MonkeyPatch, api_tokens: dict[str, str]) -
 
     assert _run("tags")["tags"] == [{"tag": "summer", "count": 1}, {"tag": "travel", "count": 1}]
 
-    appended = _run("append", str(note_id), "-m", "Bring a hat.")
-    assert appended["content"].endswith("Go to the sea.\n\nTags: #travel, #summer\n\nBring a hat.")
-
     # Edit with the timestamp read from `show`, as an agent would.
     [before] = _run("show", str(note_id))["notes"]
     edit = ["edit", str(note_id), "--stdin", "--expected-updated-at", before["updated_at"]]

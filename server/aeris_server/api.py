@@ -44,10 +44,6 @@ class NoteEdit(BaseModel):
     expected_updated_at: datetime | None = None  # Rejects the edit (409) if the note changed since.
 
 
-class NoteAppend(BaseModel):
-    text: str
-
-
 @contextmanager
 def _service_errors() -> Iterator[None]:
     """Turn service-layer errors into HTTP errors."""
@@ -146,13 +142,6 @@ def update_note(session: SessionDep, note_id: int, body: NoteEdit) -> NoteData |
                 {"detail": str(error), "current": error.current.model_dump(mode="json")},
                 status_code=status.HTTP_409_CONFLICT,
             )
-
-
-@router.post("/notes/{note_id}/append", dependencies=WRITE)
-def append_note(session: SessionDep, note_id: int, body: NoteAppend) -> NoteData:
-    """Add text to the end of a note as a new paragraph. Safe for agents: never conflicts."""
-    with _service_errors():
-        return notes.append_note(session, note_id, body.text)
 
 
 @router.delete("/notes/{note_id}", dependencies=WRITE, status_code=status.HTTP_204_NO_CONTENT)

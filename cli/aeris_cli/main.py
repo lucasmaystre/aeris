@@ -185,22 +185,6 @@ def add(message: MessageOption = None, json_output: JsonOption = False) -> None:
 
 
 @app.command()
-def append(
-    note_id: Annotated[int, typer.Argument(help="The note to add to.")],
-    message: MessageOption = None,
-    json_output: JsonOption = False,
-) -> None:
-    """Add text to the end of a note, as a new paragraph."""
-    text = _input_text(message, json_output)
-    with _errors(json_output):
-        note = make_client().append_note(note_id, text)
-    if json_output:
-        _print_json(note)
-    else:
-        typer.echo(f"Appended to note {note_id}.")
-
-
-@app.command()
 def edit(
     note_id: Annotated[int, typer.Argument(help="The note to edit.")],
     stdin: Annotated[

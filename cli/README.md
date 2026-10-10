@@ -37,7 +37,6 @@ aeris search WORDS... [--tag T] [--limit 30]     # phrase search, ignoring case 
 aeris ask WORDS... [--tag T] [--limit 10]        # closest notes in meaning, with scores
 aeris tags
 aeris add [-m TEXT]                              # else piped stdin, else your editor
-aeris append ID [-m TEXT]                        # adds a paragraph; never conflicts
 aeris edit ID                                    # in your editor
 aeris edit ID --stdin [--expected-updated-at T]  # from stdin, for scripts and agents
 aeris delete ID
@@ -56,14 +55,14 @@ Tags come from lines like `Tags: #project/aeris, #ideas` in a note. The editor i
 - Exit codes: 0 success, 1 error, 2 usage error.
 - With `--json`, errors are JSON on stdout: `{"error": ..., "status": ...}`. An edit conflict
   (409) also carries `current`, the note's latest version.
-- Prefer `append` to add information. To rewrite a note safely, read its `updated_at` with
-  `show --json`, then `edit --stdin --expected-updated-at` that value: the edit fails instead of
-  overwriting someone else's change.
+- To change a note safely, read its `updated_at` with `show --json`, then
+  `edit --stdin --expected-updated-at` that value: the edit fails instead of overwriting someone
+  else's change.
 
 ## Agent skill
 
 [`skill/SKILL.md`](https://github.com/lucasmaystre/aeris/blob/main/cli/skill/SKILL.md) teaches an
-agent to use this CLI well: which search to use, citing note IDs, `append` versus `edit`, tags.
+agent to use this CLI well: which search to use, citing note IDs, safe edits, tags.
 For Claude Code, put the `skill` folder in your skills directory, e.g. from a clone of the repo:
 
 ```bash

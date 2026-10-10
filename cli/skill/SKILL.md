@@ -43,10 +43,8 @@ or search the machine for a token.
 
 Pass text with `-m` or on stdin; never rely on an editor (there's no terminal).
 
-- **Add to an existing note** (the default for new information on a known topic):
-  `aeris append ID -m "TEXT" --json`. It adds a paragraph and never conflicts.
 - **New topic:** `aeris add --json` with the content on stdin: a title line, the tags line right
-  under it (so later appends don't bury it), then the body:
+  under it, then the body:
 
   ```bash
   aeris add --json <<'EOF'
@@ -57,10 +55,11 @@ Pass text with `-m` or on stdin; never rely on an editor (there's no terminal).
   EOF
   ```
 
-- **Rewrite a note** (only when asked to change or reorganize existing text):
+- **Update a note** (to add information to it, or when asked to change or reorganize it):
   1. `aeris show ID --json` and keep its `updated_at`.
   2. `aeris edit ID --stdin --expected-updated-at UPDATED_AT --json` with the full new content
-     on stdin.
+     on stdin. Change only what you mean to: keep the rest of the note exactly as it was (to add
+     information, insert it where it fits, often at the end).
   3. If it fails with `"status": 409`, the note changed meanwhile; the error's `current` is the
      latest version. Merge your change into it and try again with `current.updated_at`, passed
      as is. Never drop the other change.
@@ -68,7 +67,7 @@ Pass text with `-m` or on stdin; never rely on an editor (there's no terminal).
   every command but are kept in the database, so the user can recover them.
 
 Write notes for the user to read later: clear, self-contained, no chat filler. Before adding a
-note, check with `search`/`ask` that one on the topic doesn't already exist; prefer appending to it.
+note, check with `search`/`ask` that one on the topic doesn't already exist; prefer updating it.
 
 ## Tags
 
@@ -86,4 +85,4 @@ note, check with `search`/`ask` that one on the topic doesn't already exist; pre
 - `search`, `ask`: `{"hits": [{"id", "title", "tags", "created_at", "updated_at", "snippet",
   "score"}...]}`; `score` is null for `search`.
 - `tags`: `{"tags": [{"tag", "count"}...]}`.
-- `add`, `append`, `edit`: the saved note. `delete`: `{"id", "deleted": true}`.
+- `add`, `edit`: the saved note. `delete`: `{"id", "deleted": true}`.

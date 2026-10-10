@@ -1,6 +1,6 @@
 [project]
 name = "aeris"
-version = "0.6.0"
+version = "0.7.0"
 description = "Command-line client for aeris, a notes app for humans and AI agents."
 authors = [
     {name = "Lucas Maystre", email = "lucas@maystre.ch"},

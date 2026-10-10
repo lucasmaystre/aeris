@@ -112,7 +112,6 @@ def writer(database: None, api_tokens: dict[str, str]) -> TestClient:
 WRITES = [
     ("POST", "/api/notes", {"content": "x"}),
     ("PUT", "/api/notes/1", {"content": "x"}),
-    ("POST", "/api/notes/1/append", {"text": "x"}),
     ("DELETE", "/api/notes/1", None),
 ]
 
@@ -167,15 +166,6 @@ def test_update_note_errors(writer: TestClient) -> None:
     assert writer.put("/api/notes/999", json={"content": "x"}).status_code == 404
     created = writer.post("/api/notes", json={"content": "v1"}).json()
     assert writer.put(f"/api/notes/{created['id']}", json={"content": ""}).status_code == 422
-
-
-def test_append_note(writer: TestClient) -> None:
-    created = writer.post("/api/notes", json={"content": "Start"}).json()
-    path = f"/api/notes/{created['id']}/append"
-    response = writer.post(path, json={"text": "More"})
-    assert (response.status_code, response.json()["content"]) == (200, "Start\n\nMore")
-    assert writer.post(path, json={"text": " "}).status_code == 422
-    assert writer.post("/api/notes/999/append", json={"text": "x"}).status_code == 404
 
 
 def test_delete_note(writer: TestClient) -> None:

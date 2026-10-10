@@ -229,13 +229,6 @@ def update_note(
     return _replace(session, note, content)
 
 
-def append_note(session: Session, note_id: int, text: str) -> NoteData:
-    """Add text to the end of a note, as a new paragraph. Never conflicts."""
-    text = _clean(text)
-    note = _lock(session, note_id)
-    return _replace(session, note, f"{note.content.rstrip()}\n\n{text}")
-
-
 def delete_note(session: Session, note_id: int) -> None:
     """Soft-delete a note."""
     note = _lock(session, note_id)

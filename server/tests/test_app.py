@@ -31,7 +31,7 @@ def test_schema_lists_the_api_with_bearer_auth(api_tokens: dict[str, str]) -> No
     client = TestClient(app, cookies={"aeris_token": api_tokens["ro"]})
     schema = client.get("/openapi.json").json()
     assert all(path.startswith("/api/") or path == "/healthz" for path in schema["paths"])
-    assert "/api/notes/{note_id}/append" in schema["paths"]
+    assert "/api/notes/{note_id}" in schema["paths"]
     assert schema["components"]["securitySchemes"]["HTTPBearer"]["scheme"] == "bearer"
     assert schema["paths"]["/api/tags"]["get"]["security"] == [{"HTTPBearer": []}]
     assert "security" not in schema["paths"]["/healthz"]["get"]

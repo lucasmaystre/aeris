@@ -12,7 +12,6 @@ from aeris_server.notes import (
     EmptyQuery,
     NoteNotFound,
     StaleNote,
-    append_note,
     create_note,
     delete_note,
     export_notes,
@@ -273,26 +272,6 @@ def test_update_note_errors() -> None:
             update_note(session, 9999, "New")
         with pytest.raises(EmptyContent):
             update_note(session, _add("Live"), "  ")
-
-
-@pytest.mark.usefixtures("database")
-def test_append_note() -> None:
-    note_id = _add("Start\n")
-    with db.session() as session:
-        note = append_note(session, note_id, "\nMore\nTags: #added\n")
-    assert note.content == "Start\n\nMore\nTags: #added"
-    assert note.tags == ["added"]
-    assert note.updated_at > T0
-    assert _revisions(note_id) == ["Start\n"]
-
-
-@pytest.mark.usefixtures("database")
-def test_append_note_errors() -> None:
-    with db.session() as session:
-        with pytest.raises(NoteNotFound):
-            append_note(session, 9999, "More")
-        with pytest.raises(EmptyContent):
-            append_note(session, _add("Live"), "")
 
 
 @pytest.mark.usefixtures("database")

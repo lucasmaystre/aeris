@@ -322,7 +322,7 @@ def test_tags_empty_and_json(server: FakeServer) -> None:
     assert json.loads(runner.invoke(app, ["tags", "--json"]).stdout) == server.body
 
 
-# Writing: add, append, delete.
+# Writing: add, delete.
 
 
 @pytest.fixture
@@ -393,32 +393,6 @@ def test_add_json(server: FakeServer) -> None:
     server.body = NOTE_12
     result = runner.invoke(app, ["add", "-m", "Twelve", "--json"])
     assert json.loads(result.stdout) == NOTE_12
-
-
-def test_append(server: FakeServer) -> None:
-    server.body = NOTE_7
-    result = runner.invoke(app, ["append", "7", "-m", "More"])
-    assert (result.exit_code, result.stdout) == (0, "Appended to note 7.\n")
-    assert server.sent == ("POST", "/api/notes/7/append", {"text": "More"})
-    assert json.loads(runner.invoke(app, ["append", "7", "-m", "x", "--json"]).stdout) == NOTE_7
-
-
-def test_append_editor(server: FakeServer, editor: Path) -> None:
-    server.body = NOTE_7
-    editor.write_text("From the editor")
-    assert runner.invoke(app, ["append", "7"]).exit_code == 0
-    assert server.sent[2] == {"text": "From the editor"}
-
-
-def test_append_no_text(server: FakeServer) -> None:
-    result = runner.invoke(app, ["append", "7"], input="")
-    assert (result.exit_code, result.stderr) == (1, f"Error: {main.NO_TEXT}\n")
-
-
-def test_append_missing_note(server: FakeServer) -> None:
-    server.status, server.body = 404, {"detail": "No note with id 99."}
-    result = runner.invoke(app, ["append", "99", "-m", "x"])
-    assert (result.exit_code, result.stderr) == (1, "Error: No note with id 99. (HTTP 404)\n")
 
 
 def test_delete(server: FakeServer) -> None:
@@ -587,7 +561,7 @@ def test_export_error_writes_nothing(server: FakeServer, tmp_path: Path) -> None
 
 def test_json_error_from_server(server: FakeServer) -> None:
     server.status, server.body = 404, {"detail": "No note with id 99."}
-    for args in (["append", "99", "-m", "x"], ["delete", "99"], ["edit", "99", "--stdin"]):
+    for args in (["delete", "99"], ["edit", "99", "--stdin"]):
         result = runner.invoke(app, [*args, "--json"], input="new")
         assert result.exit_code == 1, args
         assert json.loads(result.stdout) == {"error": "No note with id 99.", "status": 404}
