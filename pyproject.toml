@@ -18,6 +18,7 @@ dev = [
     "pytailwindcss>=0.3.1",  # the Tailwind CSS standalone binary, see scripts/css.sh
     "pytest>=8.4.0",
     "ruff>=0.11.13",
+    "playwright>=1.63.0",
 ]
 
 [tool.uv.workspace]

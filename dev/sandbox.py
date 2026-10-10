@@ -11,6 +11,7 @@ Dev only: nothing here is deployed.
 import math
 import os
 import re
+import socket
 import subprocess
 import zlib
 from datetime import UTC, datetime, timedelta
@@ -142,12 +143,21 @@ def seed() -> int:
     return len(paths)
 
 
+def port_in_use() -> bool:
+    with socket.socket() as probe:
+        return probe.connect_ex(("127.0.0.1", PORT)) == 0
+
+
 def main() -> None:
     import uvicorn
 
     from aeris_server import db
     from aeris_server.migrate import migrate
 
+    # Before touching the database: another sandbox uses the same test branch, and this one
+    # would reseed it now and empty it on exit.
+    if port_in_use():
+        raise SystemExit(f"Port {PORT} is taken: is a sandbox already running?")
     configure()
     migrate(db.engine())
     empty()

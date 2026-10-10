@@ -24,11 +24,20 @@ From A.1 (2026-10-10):
 - The sandbox stops cleanly on Ctrl-C (SIGINT), emptying the test branch; unlike `fastapi dev`,
   nothing lingers on the port.
 
+From A.2 (2026-10-10):
+
+- A second sandbox, started while the user's was running, reseeded the shared test branch and
+  emptied it on exit, leaving the first one with no notes. The sandbox now checks the port before
+  touching the database.
+- The gallery: 9 views × 2 widths in about 20 s. It shows W6 (the relative time exists but is
+  clipped off the sidebar's right edge), W10, W11 and W14 clearly.
+- Search snippets show raw Markdown (`# Title`, `Tags: …`): fix with the sidebar rows (C.1).
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
   token, fake embedder, cleanup)
-- [ ] A.2 Screenshot gallery with Playwright: fixed views, desktop and narrow widths
+- [x] A.2 Screenshot gallery with Playwright: fixed views, desktop and narrow widths
 - [ ] A.3 Style guide page (dev only): every component, real templates, fixture data
 
 ## Phase B: Look

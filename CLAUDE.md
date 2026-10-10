@@ -48,6 +48,7 @@ uv run pytest -m "not db"            # unit tests only: offline, no setup
 uv run ruff check && uv run ruff format && uv run pyright
 uv run fastapi dev server/main.py    # dev server
 uv run dev/sandbox.py                # UI sandbox: seeded test branch, http://localhost:8765/dev/login
+uv run dev/screenshots.py [LABEL]    # screenshot the running sandbox to dev/screenshots/LABEL/
 scripts/css.sh [--watch]             # rebuild server/static/app.css after template changes; commit it
 uv run aeris-admin migrate           # apply migrations to AERIS_DATABASE_URL
 uv run aeris-admin reindex           # embed new or stale notes (needs AERIS_OPENROUTER_API_KEY)
