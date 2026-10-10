@@ -15,11 +15,18 @@ Decisions:
 
 ## Findings
 
-None yet.
+From A.1 (2026-10-10):
+
+- The sandbox's first screenshot already shows W3 (uneven spacing) and W6 (previews overflow the
+  sidebar's width).
+- A note that starts with a code fence gets the title `` `bash `` (`parsing.title` keeps the fence's
+  backtick and language). Fix with the sidebar rows (C.1).
+- The sandbox stops cleanly on Ctrl-C (SIGINT), emptying the test branch; unlike `fastapi dev`,
+  nothing lingers on the port.
 
 ## Phase A: Tooling
 
-- [ ] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
+- [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
   token, fake embedder, cleanup)
 - [ ] A.2 Screenshot gallery with Playwright: fixed views, desktop and narrow widths
 - [ ] A.3 Style guide page (dev only): every component, real templates, fixture data
