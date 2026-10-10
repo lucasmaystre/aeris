@@ -34,6 +34,7 @@ Environment variables win over the file.
 aeris list [--limit 30] [--last "2 days"] [--tag T] [--order created|updated]
 aeris show ID [ID...]
 aeris search WORDS... [--tag T] [--limit 30]     # phrase search, ignoring case and accents
+aeris ask WORDS... [--tag T] [--limit 10]        # closest notes in meaning, with scores
 aeris tags
 aeris add [-m TEXT]                              # else piped stdin, else your editor
 aeris append ID [-m TEXT]                        # adds a paragraph; never conflicts
@@ -42,6 +43,9 @@ aeris edit ID --stdin [--expected-updated-at T]  # from stdin, for scripts and a
 aeris delete ID
 aeris export [PATH | -] [--force]                # every note as JSON Lines: a backup
 ```
+
+`ask` ranks notes by semantic similarity (cosine, higher is closer). Scores are relative: a good
+match often scores only 0.3–0.5, so compare results with each other rather than with a fixed bar.
 
 Tags come from lines like `Tags: #project/aeris, #ideas` in a note. The editor is `$VISUAL`, else
 `$EDITOR`, else `vi`; it only opens in an interactive terminal.
