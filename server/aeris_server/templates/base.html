@@ -11,11 +11,18 @@
 </head>
 <body class="{% block body_class %}font-sans text-sm bg-base-100 text-base-content h-screen flex flex-col overflow-hidden{% endblock %}">
 
-  <header class="navbar min-h-0 flex-none bg-base-200 border-b border-base-300 px-4 py-2">
+  <header class="navbar min-h-0 flex-none gap-2 bg-base-200 border-b border-base-300 px-4 py-2">
     <span class="flex-1 text-lg font-semibold tracking-tight">æris</span>
     {% if token %}
-    <form method="post" action="/logout" class="flex items-center gap-2 text-sm">
-      <span class="opacity-60">{{ token.name }}</span>
+    <button class="btn btn-primary btn-sm"
+            hx-get="/notes/new"
+            hx-target="#main-panel"
+            hx-swap="innerHTML">
+      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      New note
+    </button>
+    <form method="post" action="/logout">
       <button type="submit" class="btn btn-ghost btn-sm">Log out</button>
     </form>
     {% endif %}

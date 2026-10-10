@@ -73,6 +73,7 @@ def test_login_form() -> None:
     response = _client().get("/login")
     assert response.status_code == 200
     assert 'name="token"' in response.text
+    assert "New note" not in response.text and "Log out" not in response.text
 
 
 def test_login_invalid_token() -> None:
@@ -90,10 +91,10 @@ def test_login(api_tokens: dict[str, str]) -> None:
     assert cookie.startswith(f"{COOKIE_NAME}={api_tokens['ro']};")
     for attribute in ["HttpOnly", "Max-Age=31536000", "Path=/", "SameSite=lax", "Secure"]:
         assert attribute in cookie
-    # The client kept the cookie, so the index page now works and shows who is logged in.
+    # The client kept the cookie, so the index page now works, with the logged-in top bar.
     index = client.get("/")
     assert index.status_code == 200
-    assert '<span class="opacity-60">reader</span>' in index.text
+    assert "Log out" in index.text
 
 
 def test_login_on_localhost_is_not_secure(api_tokens: dict[str, str]) -> None:
@@ -167,6 +168,11 @@ def test_index(browser: TestClient) -> None:
     assert '<input id="search" type="search"' in response.text
     assert 'hx-get="/notes"' in response.text
     assert "/static/app.css" in response.text
+    # The top bar: "New note" and "Log out", without the token's name.
+    header = response.text.split("</header>")[0]
+    assert 'hx-get="/notes/new"' in header and "Log out" in header
+    assert ">me<" not in header
+    assert response.text.count('hx-get="/notes/new"') == 1
 
 
 def test_note_list(browser: TestClient) -> None:

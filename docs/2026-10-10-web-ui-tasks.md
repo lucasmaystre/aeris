@@ -68,7 +68,7 @@ From B.1 (2026-10-10):
   Geist vs Inter, on the style guide (switcher) and in screenshot galleries (`--theme`, `--font`,
   `--compare`); the user picks
 - [x] B.1b Apply: the chosen theme and font only, one type scale everywhere (deploy later)
-- [ ] B.2 Top bar: drop the user's name, "New note" moves in (W1, W2)
+- [x] B.2 Top bar: drop the user's name, "New note" moves in (W1, W2)
 
 ## Phase C: Sidebar
 

@@ -120,6 +120,7 @@ def styleguide(request: Request) -> HTMLResponse:
     """Every part of the UI on one page, rendered by the real partials with fixture data."""
     from collections import Counter
 
+    from aeris_server.auth import Token
     from aeris_server.notes import SearchHit, TagCount
     from aeris_server.parsing import preview
     from aeris_server.web import CONFLICT_MESSAGE, render_markdown
@@ -136,7 +137,7 @@ def styleguide(request: Request) -> HTMLResponse:
     ]
     long_note = notes[1]  # The Ray how-to: headings, code, a table.
     context = {
-        "token": None,
+        "token": Token(name="sandbox", scope="rw", secret=TOKEN),  # Shows the logged-in top bar.
         "colors": COLORS,
         "notes": notes,
         "tags": [TagCount(tag=tag, count=count) for tag, count in sorted(counts.items())],
