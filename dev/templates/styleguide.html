@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{# Dev only (sandbox): every piece of the UI on one page, rendered by the real partials. #}
+
+{% block body_class %}font-sans bg-base-100 text-base-content{% endblock %}
+
+{% block content %}
+<main class="p-8 flex flex-col gap-12">
+
+  <header>
+    <h1 class="text-3xl font-bold">Style guide</h1>
+    <p class="text-sm opacity-60">Theme tokens, daisyUI components and aeris's own partials, with fixture data.</p>
+  </header>
+
+  <section class="flex flex-col gap-4">
+    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">Colors</h2>
+    <div id="swatches" class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
+      {% for name in colors %}
+      <div class="rounded-box border border-base-300 overflow-hidden text-xs">
+        <div class="h-14" style="background: var(--color-{{ name }})"></div>
+        <div class="p-2">
+          <div class="font-semibold">{{ name }}</div>
+          <div class="font-mono opacity-60" data-color="{{ name }}"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="flex flex-col gap-4">
+    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">Type</h2>
+    <p class="text-sm">Sans: <span class="font-mono" data-font="--font-sans"></span><br>
+       Mono: <span class="font-mono" data-font="--font-mono"></span></p>
+    {% for size in ["text-xs", "text-sm", "text-base", "text-lg", "text-xl", "text-2xl", "text-3xl"] %}
+    <div class="flex items-baseline gap-6">
+      <span class="w-20 flex-none text-xs font-mono opacity-60">{{ size }}</span>
+      <span class="{{ size }}">The quick brown fox jumps over the lazy dog</span>
+      <span class="{{ size }} font-semibold">Semibold</span>
+      <span class="{{ size }} font-mono">mono 0123</span>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="flex flex-col gap-6">
+    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">daisyUI components</h2>
+
+    <div class="flex flex-col gap-3">
+      <h3 class="text-sm font-semibold opacity-60">Buttons</h3>
+      {% for size in ["btn-xs", "btn-sm", "", "btn-lg"] %}
+      <div class="flex flex-wrap items-center gap-2">
+        <button class="btn btn-primary {{ size }}">Primary</button>
+        <button class="btn btn-neutral {{ size }}">Neutral</button>
+        <button class="btn btn-outline {{ size }}">Outline</button>
+        <button class="btn btn-soft {{ size }}">Soft</button>
+        <button class="btn btn-ghost {{ size }}">Ghost</button>
+        <button class="btn btn-link {{ size }}">Link</button>
+        <button class="btn btn-ghost text-error {{ size }}">Delete</button>
+        <button class="btn btn-primary {{ size }}" disabled>Disabled</button>
+      </div>
+      {% endfor %}
+      <div class="join">
+        <button class="join-item btn btn-sm btn-neutral">Rendered</button>
+        <button class="join-item btn btn-sm">Raw</button>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 max-w-md">
+      <h3 class="text-sm font-semibold opacity-60">Inputs</h3>
+      <input class="input w-full" placeholder="Input">
+      <label class="input w-full">
+        <svg class="h-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" class="grow" placeholder="Search with an icon">
+        <kbd class="kbd kbd-sm">/</kbd>
+      </label>
+      <textarea class="textarea w-full" placeholder="Textarea"></textarea>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox checkbox-sm" checked> Checkbox</label>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <h3 class="text-sm font-semibold opacity-60">Badges and keys</h3>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="badge">badge</span>
+        <span class="badge badge-sm badge-primary">primary</span>
+        <span class="badge badge-sm badge-secondary">#secondary</span>
+        <span class="badge badge-sm badge-accent">accent</span>
+        <span class="badge badge-sm badge-outline">outline</span>
+        <span class="badge badge-sm badge-soft badge-primary">soft</span>
+        <span class="badge badge-sm badge-ghost">ghost</span>
+        <kbd class="kbd kbd-sm">⌘</kbd><kbd class="kbd kbd-sm">K</kbd>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 max-w-md">
+      <h3 class="text-sm font-semibold opacity-60">Alerts</h3>
+      <div role="alert" class="alert alert-soft alert-info text-sm">Info: something to know.</div>
+      <div role="alert" class="alert alert-soft alert-success text-sm">Saved.</div>
+      <div role="alert" class="alert alert-soft alert-warning text-sm">This note changed since you opened it.</div>
+      <div role="alert" class="alert alert-soft alert-error text-sm">Ranking isn't available right now.</div>
+    </div>
+
+    <div class="flex flex-wrap items-start gap-8">
+      <div class="flex flex-col gap-3 h-72 w-64">
+        <h3 class="text-sm font-semibold opacity-60">Dropdown with checkboxes</h3>
+        <details class="dropdown" open>
+          <summary class="btn btn-sm btn-outline">Tags (2)</summary>
+          <div class="dropdown-content z-10 mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow">
+            <input class="input input-sm w-full mb-2" placeholder="Filter tags">
+            <ul class="menu menu-sm p-0 w-full">
+              {% for tag in tags[:5] %}
+              <li><label><input type="checkbox" class="checkbox checkbox-xs" {% if loop.index <= 2 %}checked{% endif %}> #{{ tag.tag }} <span class="opacity-50">{{ tag.count }}</span></label></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </details>
+      </div>
+      <div class="flex flex-col gap-3">
+        <h3 class="text-sm font-semibold opacity-60">Menu, list, tooltip, modal</h3>
+        <ul class="menu bg-base-200 rounded-box w-56">
+          <li><a>Item</a></li>
+          <li><a class="menu-active">Active item</a></li>
+          <li><a>Another item</a></li>
+        </ul>
+        <ul class="list bg-base-100 rounded-box border border-base-300 w-72">
+          {% for note in notes[:3] %}
+          <li class="list-row"><div><div class="font-semibold">{{ note.title }}</div><div class="text-xs opacity-60">#{{ note.id }} · {{ note.updated_at | ago }}</div></div></li>
+          {% endfor %}
+        </ul>
+        <div class="tooltip" data-tip="A tooltip"><button class="btn btn-sm">Hover me</button></div>
+        <button class="btn btn-sm" onclick="document.getElementById('demo-modal').showModal()">Open modal</button>
+        <dialog id="demo-modal" class="modal">
+          <div class="modal-box">
+            <h3 class="font-semibold">Delete this note?</h3>
+            <p class="py-2 text-sm">It disappears from every list, but stays in the database.</p>
+            <div class="modal-action">
+              <form method="dialog" class="flex gap-2"><button class="btn btn-sm btn-ghost">Cancel</button><button class="btn btn-sm btn-error">Delete</button></form>
+            </div>
+          </div>
+        </dialog>
+      </div>
+    </div>
+  </section>
+
+  <section class="flex flex-col gap-6">
+    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">aeris components</h2>
+
+    <div class="flex flex-wrap items-start gap-8">
+      <div class="flex flex-col gap-3">
+        <h3 class="text-sm font-semibold opacity-60">Sidebar: note list</h3>
+        <div class="w-80 h-[36rem] overflow-y-auto border border-base-300">
+          {% include "partials/note_list.html" %}
+        </div>
+      </div>
+      <div class="flex flex-col gap-3">
+        <h3 class="text-sm font-semibold opacity-60">Sidebar: ranked by similarity</h3>
+        <div class="w-80 h-[36rem] overflow-y-auto border border-base-300">
+          {% with hits = ranked, error = none %}{% include "partials/ranked_notes.html" %}{% endwith %}
+        </div>
+      </div>
+      <div class="flex flex-col gap-3">
+        <h3 class="text-sm font-semibold opacity-60">Login</h3>
+        {% with next = "/" %}{% include "partials/login_form.html" %}{% endwith %}
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <h3 class="text-sm font-semibold opacity-60">Note, rendered</h3>
+      <div class="h-[40rem] overflow-y-auto border border-base-300">
+        {% with note = long_note, rendered_html = long_html, mode = "rendered" %}{% include "partials/note_detail.html" %}{% endwith %}
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <h3 class="text-sm font-semibold opacity-60">Note, raw</h3>
+      <div class="h-80 overflow-y-auto border border-base-300">
+        {% with note = short_note, rendered_html = none, mode = "raw" %}{% include "partials/note_detail.html" %}{% endwith %}
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-8">
+      <div class="flex flex-col gap-3 flex-1 min-w-96">
+        <h3 class="text-sm font-semibold opacity-60">Editor, new note</h3>
+        <div class="h-[30rem] overflow-y-auto border border-base-300">
+          {% with note_id = none, content = "", expected_updated_at = none, error = none, conflict = false %}{% include "partials/note_form.html" %}{% endwith %}
+        </div>
+      </div>
+      <div class="flex flex-col gap-3 flex-1 min-w-96">
+        <h3 class="text-sm font-semibold opacity-60">Editor, conflict</h3>
+        <div class="h-[30rem] overflow-y-auto border border-base-300">
+          {% with note_id = short_note.id, content = short_note.content, expected_updated_at = short_note.updated_at, error = conflict_message, conflict = true %}{% include "partials/note_form.html" %}{% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <h3 class="text-sm font-semibold opacity-60">Note deleted</h3>
+      <div class="h-24 border border-base-300">
+        {% with note_id = short_note.id %}{% include "partials/note_deleted.html" %}{% endwith %}
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Show each color's and font's actual value, read from the CSS.
+  const root = getComputedStyle(document.documentElement);
+  for (const element of document.querySelectorAll("[data-color]")) {
+    element.textContent = root.getPropertyValue(`--color-${element.dataset.color}`).trim();
+  }
+  for (const element of document.querySelectorAll("[data-font]")) {
+    element.textContent = root.getPropertyValue(element.dataset.font).trim();
+  }
+</script>
+{% endblock %}

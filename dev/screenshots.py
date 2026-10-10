@@ -73,7 +73,9 @@ VIEWS: dict[str, Callable[[Page], None]] = {
     "no-match": search("zebra"),
     "ranked": search("cluster", enter=True),
     "login": go("/login"),
+    "styleguide": go("/dev/styleguide"),
 }
+FULL_PAGE = {"styleguide"}  # Long pages that scroll as a whole: capture all of it.
 
 
 def write_index(folder: Path, shots: list[Path]) -> None:
@@ -121,7 +123,7 @@ def main() -> None:
                 show(page)
                 settle(page)
                 shot = folder / f"{name}-{width}.png"
-                page.screenshot(path=shot)
+                page.screenshot(path=shot, full_page=name in FULL_PAGE)
                 page.close()
                 shots.append(shot)
         browser.close()

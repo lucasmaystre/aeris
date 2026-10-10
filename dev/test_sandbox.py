@@ -54,3 +54,24 @@ def test_fixtures_are_notes() -> None:
     assert len(paths) >= len(sandbox.AGES)
     for path in paths:
         assert title(path.read_text()), path.name
+
+
+def test_styleguide_renders_every_section(app: TestClient) -> None:
+    page = app.get("/dev/styleguide")
+    assert page.status_code == 200
+    for heading in ["Colors", "Type", "daisyUI components", "aeris components"]:
+        assert f">{heading}</h2>" in page.text
+    # The real partials, with fixture data.
+    assert 'id="note-list"' in page.text
+    assert "Ranked by similarity · 6" in page.text
+    assert "Running a Ray cluster on Kubernetes</h1>" in page.text
+    assert "Edit note #1" in page.text and "changed since you opened it" in page.text
+    assert 'action="/login"' in page.text
+    assert 'data-color="primary"' in page.text
+
+
+def test_sample_notes_match_the_fixtures() -> None:
+    notes = sandbox.sample_notes()
+    assert [note.id for note in notes] == list(range(1, len(notes) + 1))
+    assert notes[1].tags == ["infra/kubernetes", "infra/ray"]
+    assert notes[0].updated_at >= notes[1].updated_at

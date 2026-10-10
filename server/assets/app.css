@@ -4,6 +4,8 @@
 @import "tailwindcss" source(none);
 @source "../aeris_server/templates";
 @source "../static/app.js";
+/* The dev-only style guide shows components the app may adopt: about 3 KB gzipped, for B.1. */
+@source "../../dev/templates";
 
 @plugin "@tailwindcss/typography";
 

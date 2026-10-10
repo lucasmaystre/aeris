@@ -16,12 +16,19 @@ import subprocess
 import zlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, FastAPI, status
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, FastAPI, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from jinja2 import ChoiceLoader, Environment, FileSystemLoader
+
+if TYPE_CHECKING:
+    from aeris_server.notes import NoteData
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+TEMPLATES = Path(__file__).resolve().parent / "templates"
 PORT = 8765
 # Not a secret: it only opens this local server, on a branch without real notes.
 TOKEN = "sandbox-" + "0" * 32
@@ -47,6 +54,11 @@ AGES = [
 router = APIRouter(prefix="/dev", include_in_schema=False)
 
 
+def age(index: int) -> tuple[timedelta, timedelta | None]:
+    """How long ago fixture number `index` was created, and edited (None: never)."""
+    return AGES[index] if index < len(AGES) else (timedelta(days=900 + index), None)
+
+
 @router.get("/login")
 def login() -> RedirectResponse:
     """Log in as the sandbox token, then go to the app."""
@@ -55,6 +67,86 @@ def login() -> RedirectResponse:
     response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(COOKIE_NAME, TOKEN, httponly=True, samesite="lax")
     return response
+
+
+# The theme colors daisyUI defines, as shown on the style guide.
+COLORS = [
+    f"{name}{suffix}"
+    for name in ["base", "primary", "secondary", "accent", "neutral"]
+    for suffix in (["-100", "-200", "-300", "-content"] if name == "base" else ["", "-content"])
+] + ["info", "success", "warning", "error"]
+
+
+def dev_templates() -> Jinja2Templates:
+    """The app's templates and filters, plus `dev/templates/` (looked up first)."""
+    from aeris_server.web import templates
+
+    assert templates.env.loader is not None
+    env = Environment(
+        loader=ChoiceLoader([FileSystemLoader(TEMPLATES), templates.env.loader]), autoescape=True
+    )
+    env.filters.update(templates.env.filters)
+    env.globals.update(templates.env.globals)
+    return Jinja2Templates(env=env)
+
+
+def sample_notes() -> list["NoteData"]:
+    """The fixture notes as the app would return them once seeded: same IDs, same ages."""
+    from aeris_server.notes import NoteData
+    from aeris_server.parsing import extract_tags, title
+
+    now = datetime.now(UTC)
+    samples = []
+    for index, path in enumerate(sorted(FIXTURES.glob("*.md"))):
+        content = path.read_text().strip()
+        created_ago, updated_ago = age(index)
+        created = now - created_ago
+        samples.append(
+            NoteData(
+                id=index + 1,
+                title=title(content),
+                tags=extract_tags(content),
+                created_at=created,
+                updated_at=now - updated_ago if updated_ago else created,
+                content=content,
+                deleted=False,
+            )
+        )
+    return samples
+
+
+@router.get("/styleguide")
+def styleguide(request: Request) -> HTMLResponse:
+    """Every part of the UI on one page, rendered by the real partials with fixture data."""
+    from collections import Counter
+
+    from aeris_server.notes import SearchHit, TagCount
+    from aeris_server.parsing import preview
+    from aeris_server.web import CONFLICT_MESSAGE, render_markdown
+
+    notes = sample_notes()
+    counts = Counter(tag for note in notes for tag in note.tags)
+    ranked = [
+        SearchHit(
+            **note.model_dump(include={"id", "title", "tags", "created_at", "updated_at"}),
+            snippet=preview(note.content or ""),
+            score=0.62 - 0.07 * rank,
+        )
+        for rank, note in enumerate(notes[:6])
+    ]
+    long_note = notes[1]  # The Ray how-to: headings, code, a table.
+    context = {
+        "token": None,
+        "colors": COLORS,
+        "notes": notes,
+        "tags": [TagCount(tag=tag, count=count) for tag, count in sorted(counts.items())],
+        "ranked": ranked,
+        "long_note": long_note,
+        "long_html": render_markdown(long_note.content or ""),
+        "short_note": notes[0],
+        "conflict_message": CONFLICT_MESSAGE,
+    }
+    return dev_templates().TemplateResponse(request, "styleguide.html", context)
 
 
 def fake_embed(texts: list[str], **_: object) -> list[list[float]]:
@@ -128,9 +220,7 @@ def seed() -> int:
     paths = sorted(FIXTURES.glob("*.md"))
     with db.session() as session:
         for index, path in enumerate(paths):
-            created_ago, updated_ago = (
-                AGES[index] if index < len(AGES) else (timedelta(days=900 + index), None)
-            )
+            created_ago, updated_ago = age(index)
             note = notes.create_note(session, path.read_text())
             created = now - created_ago
             updated = now - updated_ago if updated_ago else created

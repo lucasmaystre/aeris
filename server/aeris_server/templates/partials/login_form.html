@@ -1,0 +1,16 @@
+<form method="post" action="/login" class="card w-full max-w-sm border border-base-300">
+  <input type="hidden" name="next" value="{{ next or '/' }}">
+  <div class="card-body gap-4">
+    <h1 class="card-title">Log in</h1>
+    {% if error %}
+    <div role="alert" class="alert alert-soft alert-error text-sm">{{ error }}</div>
+    {% endif %}
+    <label class="flex flex-col gap-1 text-sm">
+      Secret
+      <input type="password" name="token" required autofocus autocomplete="current-password"
+             class="input w-full font-mono">
+      <span class="text-xs opacity-60">Only the secret part of your token, without <code>name:rw:</code>.</span>
+    </label>
+    <button type="submit" class="btn btn-primary w-full">Log in</button>
+  </div>
+</form>

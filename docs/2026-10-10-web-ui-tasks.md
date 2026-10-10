@@ -12,6 +12,9 @@ Decisions:
   personal tabs and accounts, and the repo is public.
 - Light only, no dark mode. A little color, not greyscale. daisyUI components first (doc §3).
 - Tag filter: our own small component, not a third-party library.
+- The style guide's template (`dev/templates/`) is a Tailwind source, so the production CSS also
+  carries the components it shows: about 3 KB gzipped (11 → 14.5 KB). Accepted while we choose
+  components; the gap shrinks as the app adopts them (A.3).
 
 ## Findings
 
@@ -33,12 +36,19 @@ From A.2 (2026-10-10):
   clipped off the sidebar's right edge), W10, W11 and W14 clearly.
 - Search snippets show raw Markdown (`# Title`, `Tags: …`): fix with the sidebar rows (C.1).
 
+From A.3 (2026-10-10):
+
+- The editor partial fills its container (`h-full`, a textarea of at least 16 rem); with the
+  conflict warning it needs about 28 rem, else it scrolls inside the main panel. Revisit in D.3.
+- Unfocused inputs and textareas have a nearly invisible border (W8 applies to the editor too):
+  B.1's tokens.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
   token, fake embedder, cleanup)
 - [x] A.2 Screenshot gallery with Playwright: fixed views, desktop and narrow widths
-- [ ] A.3 Style guide page (dev only): every component, real templates, fixture data
+- [x] A.3 Style guide page (dev only): every component, real templates, fixture data
 
 ## Phase B: Look
 
