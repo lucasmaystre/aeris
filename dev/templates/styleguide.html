@@ -7,9 +7,21 @@
 {% block content %}
 <main class="p-8 flex flex-col gap-12">
 
-  <header>
-    <h1 class="text-3xl font-bold">Style guide</h1>
-    <p class="text-sm opacity-60">Theme tokens, daisyUI components and aeris's own partials, with fixture data.</p>
+  <header class="flex flex-wrap items-end gap-6">
+    <div class="flex-1">
+      <h1 class="text-3xl font-bold">Style guide</h1>
+      <p class="text-sm opacity-60">Theme tokens, daisyUI components and aeris's own partials, with fixture data.</p>
+    </div>
+    <label class="flex flex-col gap-1 text-xs font-semibold opacity-80">Theme
+      <select id="pick-theme" class="select select-sm w-40">
+        {% for theme in themes %}<option>{{ theme }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="flex flex-col gap-1 text-xs font-semibold opacity-80">Font
+      <select id="pick-font" class="select select-sm w-40">
+        {% for font in fonts %}<option>{{ font }}</option>{% endfor %}
+      </select>
+    </label>
   </header>
 
   <section class="flex flex-col gap-4">
@@ -202,13 +214,44 @@
 </main>
 
 <script>
+  // Theme and font candidates (B.1a), applied to the whole page and remembered in this browser.
+  const FONTS = {{ fonts | tojson }};
+  const html = document.documentElement;
+  const pickTheme = document.getElementById("pick-theme");
+  const pickFont = document.getElementById("pick-font");
+
   // Show each color's and font's actual value, read from the CSS.
-  const root = getComputedStyle(document.documentElement);
-  for (const element of document.querySelectorAll("[data-color]")) {
-    element.textContent = root.getPropertyValue(`--color-${element.dataset.color}`).trim();
+  function showValues() {
+    const root = getComputedStyle(html);
+    for (const element of document.querySelectorAll("[data-color]")) {
+      element.textContent = root.getPropertyValue(`--color-${element.dataset.color}`).trim();
+    }
+    for (const element of document.querySelectorAll("[data-font]")) {
+      element.textContent = root.getPropertyValue(element.dataset.font).trim();
+    }
   }
-  for (const element of document.querySelectorAll("[data-font]")) {
-    element.textContent = root.getPropertyValue(element.dataset.font).trim();
+
+  function apply(theme, font) {
+    html.dataset.theme = theme;
+    const [sans, mono] = FONTS[font] || [null, null];
+    for (const [name, value] of [["--font-sans", sans], ["--font-mono", mono]]) {
+      if (value) html.style.setProperty(name, value);
+      else html.style.removeProperty(name);
+    }
+    pickTheme.value = theme;
+    pickFont.value = font;
+    try {
+      localStorage.setItem("styleguide", JSON.stringify({ theme, font }));
+    } catch {}
+    document.fonts.ready.then(showValues);
   }
+
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem("styleguide") || "{}");
+  } catch {}
+  apply(saved.theme || pickTheme.options[0].value, saved.font || pickFont.options[0].value);
+  pickTheme.addEventListener("change", () => apply(pickTheme.value, pickFont.value));
+  pickFont.addEventListener("change", () => apply(pickTheme.value, pickFont.value));
 </script>
 {% endblock %}

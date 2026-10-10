@@ -69,6 +69,20 @@ def login() -> RedirectResponse:
     return response
 
 
+# B.1a: candidates to compare, on the style guide (a switcher) and in screenshots (--theme, --font).
+THEMES = ["aeris", "aeris-slate", "aeris-stone", "aeris-zinc"]
+FONTS = {  # Name: (--font-sans, --font-mono). "current" keeps the app's own.
+    "current": (None, None),
+    "geist": (
+        '"Geist", ui-sans-serif, system-ui, sans-serif',
+        '"Geist Mono", ui-monospace, monospace',
+    ),
+    "inter": (
+        '"Inter", ui-sans-serif, system-ui, sans-serif',
+        '"Geist Mono", ui-monospace, monospace',
+    ),
+}
+
 # The theme colors daisyUI defines, as shown on the style guide.
 COLORS = [
     f"{name}{suffix}"
@@ -145,6 +159,8 @@ def styleguide(request: Request) -> HTMLResponse:
         "long_html": render_markdown(long_note.content or ""),
         "short_note": notes[0],
         "conflict_message": CONFLICT_MESSAGE,
+        "themes": THEMES,
+        "fonts": FONTS,
     }
     return dev_templates().TemplateResponse(request, "styleguide.html", context)
 

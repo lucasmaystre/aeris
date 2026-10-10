@@ -12,6 +12,8 @@ Decisions:
   personal tabs and accounts, and the repo is public.
 - Light only, no dark mode. A little color, not greyscale. daisyUI components first (doc §3).
 - Tag filter: our own small component, not a third-party library.
+- Theme: slate neutrals + indigo accent (`#4f46e5`). Font: Inter for text, Geist Mono for code and
+  IDs (B.1a, picked from the style guide and a side-by-side gallery).
 - The style guide's template (`dev/templates/`) is a Tailwind source, so the production CSS also
   carries the components it shows: about 3 KB gzipped (11 → 14.5 KB). Accepted while we choose
   components; the gap shrinks as the app adopts them (A.3).
@@ -52,8 +54,10 @@ From A.3 (2026-10-10):
 
 ## Phase B: Look
 
-- [ ] B.1 Palette, fonts and type scale on the style guide: compare the three palettes and Geist
-  vs Inter (§3); then retheme the whole UI with the chosen tokens
+- [x] B.1a Compare: three candidate themes (slate + indigo, stone + emerald, zinc + violet) and
+  Geist vs Inter, on the style guide (switcher) and in screenshot galleries (`--theme`, `--font`,
+  `--compare`); the user picks
+- [ ] B.1b Apply: the chosen theme and font only, one type scale everywhere; deploy
 - [ ] B.2 Top bar: drop the user's name, "New note" moves in (W1, W2)
 
 ## Phase C: Sidebar
