@@ -1,25 +1,23 @@
 """Screenshot gallery: fixed views of the running UI sandbox, for before/after comparisons.
 
-    uv run dev/screenshots.py [LABEL] [--theme THEME] [--font FONT]
+    uv run dev/screenshots.py [LABEL]
     uv run dev/screenshots.py --compare LABEL LABEL...
 
 Needs the sandbox (`uv run dev/sandbox.py`) running. Writes `dev/screenshots/LABEL/VIEW-WIDTH.png`
 for every view and size, plus an `index.html` showing them all. LABEL defaults to the date and
-time. `--theme` and `--font` preview a candidate (see `sandbox.THEMES` and `sandbox.FONTS`) on
-every page. `--compare` writes `dev/screenshots/compare.html`: existing galleries side by side.
+time. `--compare` writes `dev/screenshots/compare.html`: existing galleries side by side.
 Read-only: it opens forms but never saves.
 """
 
 import argparse
 import html
-import json
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
 import httpx
 from playwright.sync_api import Page, sync_playwright
-from sandbox import FONTS, PORT, THEMES
+from sandbox import PORT
 
 BASE = f"http://localhost:{PORT}"
 OUT = Path(__file__).resolve().parent / "screenshots"
@@ -104,22 +102,6 @@ def write_index(folder: Path, shots: list[Path]) -> None:
     )
 
 
-def preview_script(theme: str, font: str) -> str:
-    """Applies a theme and font to every page, and tells the style guide's switcher about them."""
-    sans, mono = FONTS[font]
-    return f"""
-      localStorage.setItem("styleguide", JSON.stringify({json.dumps({"theme": theme, "font": font})}));
-      document.addEventListener("DOMContentLoaded", () => {{
-        const html = document.documentElement;
-        html.dataset.theme = {json.dumps(theme)};
-        const fonts = {json.dumps({"--font-sans": sans, "--font-mono": mono})};
-        for (const [name, value] of Object.entries(fonts)) {{
-          if (value) html.style.setProperty(name, value);
-        }}
-      }});
-    """
-
-
 def write_comparison(labels: list[str]) -> Path:
     """One row per screenshot, one column per gallery."""
     names = sorted(path.name for path in (OUT / labels[0]).glob("*.png"))
@@ -153,8 +135,6 @@ def write_comparison(labels: list[str]) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Screenshot the running UI sandbox.")
     parser.add_argument("label", nargs="?", default=datetime.now().strftime("%Y-%m-%d-%H%M%S"))
-    parser.add_argument("--theme", choices=THEMES, help="Preview a candidate theme.")
-    parser.add_argument("--font", choices=list(FONTS), help="Preview a candidate font.")
     parser.add_argument("--compare", nargs="+", metavar="LABEL", help="Compare galleries.")
     args = parser.parse_args()
     if args.compare:
@@ -175,10 +155,6 @@ def main() -> None:
             logged_in = browser.new_context(viewport={"width": width, "height": height})
             logged_in.new_page().goto(f"{BASE}/dev/login")
             logged_out = browser.new_context(viewport={"width": width, "height": height})
-            if args.theme or args.font:
-                script = preview_script(args.theme or THEMES[0], args.font or "current")
-                logged_in.add_init_script(script)
-                logged_out.add_init_script(script)
             for name, show in VIEWS.items():
                 page = (logged_out if name == "login" else logged_in).new_page()
                 show(page)

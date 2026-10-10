@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>æris</title>
+  <link rel="preload" href="/static/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/htmx.min.js"></script>
   <script src="/static/app.js"></script>
 </head>
-<body class="{% block body_class %}font-sans bg-base-100 text-base-content h-screen flex flex-col overflow-hidden{% endblock %}">
+<body class="{% block body_class %}font-sans text-sm bg-base-100 text-base-content h-screen flex flex-col overflow-hidden{% endblock %}">
 
   <header class="navbar min-h-0 flex-none bg-base-200 border-b border-base-300 px-4 py-2">
     <span class="flex-1 text-lg font-semibold tracking-tight">æris</span>

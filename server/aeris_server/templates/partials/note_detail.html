@@ -6,26 +6,26 @@
       {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | ago }}{% endif %}
     </div>
     <div class="join">
-      <button class="join-item btn btn-xs {% if mode == 'rendered' %}btn-neutral{% endif %}"
+      <button class="join-item btn btn-sm {% if mode == 'rendered' %}btn-neutral{% endif %}"
               hx-get="/notes/{{ note.id }}?mode=rendered"
               hx-target="#main-panel"
               hx-swap="innerHTML">
         Rendered
       </button>
-      <button class="join-item btn btn-xs {% if mode == 'raw' %}btn-neutral{% endif %}"
+      <button class="join-item btn btn-sm {% if mode == 'raw' %}btn-neutral{% endif %}"
               hx-get="/notes/{{ note.id }}?mode=raw"
               hx-target="#main-panel"
               hx-swap="innerHTML">
         Raw
       </button>
     </div>
-    <button class="btn btn-xs btn-outline"
+    <button class="btn btn-sm btn-outline"
             hx-get="/notes/{{ note.id }}/edit"
             hx-target="#main-panel"
             hx-swap="innerHTML">
       Edit
     </button>
-    <button class="btn btn-xs btn-ghost text-error"
+    <button class="btn btn-sm btn-ghost text-error"
             hx-delete="/notes/{{ note.id }}"
             hx-confirm="Delete this note?"
             hx-target="#main-panel"

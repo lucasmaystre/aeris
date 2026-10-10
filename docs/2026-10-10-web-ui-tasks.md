@@ -45,6 +45,16 @@ From A.3 (2026-10-10):
 - Unfocused inputs and textareas have a nearly invisible border (W8 applies to the editor too):
   B.1's tokens.
 
+From B.1 (2026-10-10):
+
+- Galleries made the comparison easy: three palettes and two fonts on every real page, side by
+  side (`--compare`). The scaffolding (candidate themes, `--theme`/`--font`, the switcher) was
+  removed once the choice was made; `--compare` stays for before/after.
+- The retheme fixes W8 (visible search border) as a side effect. Still to do: the black selected
+  note (C.1, W10) and dark code blocks (D.2, W11).
+- daisyUI draws the focus ring in the text color (a black double ring); `app.css` points it at the
+  accent.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -57,7 +67,7 @@ From A.3 (2026-10-10):
 - [x] B.1a Compare: three candidate themes (slate + indigo, stone + emerald, zinc + violet) and
   Geist vs Inter, on the style guide (switcher) and in screenshot galleries (`--theme`, `--font`,
   `--compare`); the user picks
-- [ ] B.1b Apply: the chosen theme and font only, one type scale everywhere; deploy
+- [x] B.1b Apply: the chosen theme and font only, one type scale everywhere (deploy later)
 - [ ] B.2 Top bar: drop the user's name, "New note" moves in (W1, W2)
 
 ## Phase C: Sidebar
