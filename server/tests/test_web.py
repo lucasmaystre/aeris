@@ -205,13 +205,12 @@ def test_note_list_carries_text_for_search(browser: TestClient) -> None:
     assert '<li class="no-matches px-4 py-3 text-sm opacity-60" hidden>' in html
 
 
-def test_tag_chips_and_data(browser: TestClient) -> None:
+def test_tags_in_list_and_note(browser: TestClient) -> None:
     tagged = _create("One\n\nTags: #work, #project/aeris")
     _create("Two\n\nTags: #work")
     html = browser.get("/notes").text
-    assert '<button type="button" class="tag-chip badge' in html
-    assert 'data-tag="work">\n    #work <span class="opacity-60">2</span>' in html
-    assert 'data-tag="project/aeris">\n    #project/aeris <span class="opacity-60">1</span>' in html
+    # No chips or badges: rows carry their tags for filtering by `#tag` in the search box.
+    assert "tag-chip" not in html and "badge" not in html
     assert 'data-tags="project/aeris work"' in html
     detail = browser.get(f"/notes/{tagged.id}").text
     assert 'data-tag="project/aeris"' in detail

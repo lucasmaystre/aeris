@@ -11,7 +11,6 @@ Decisions:
 - Inspiration screenshots stay local (`docs/aesthetics-inspiration/` is gitignored): they show
   personal tabs and accounts, and the repo is public.
 - Light only, no dark mode. A little color, not greyscale. daisyUI components first (doc §3).
-- Tag filter: our own small component, not a third-party library.
 - The sidebar lists notes by last update, and rows show no tag badges (C.1).
 - Creating a note clears the search box and closes the ranking, so the new note shows (C.2). Notes
   added elsewhere (CLI, agents, another tab) appear on the next reload: no refresh on focus or
@@ -19,6 +18,9 @@ Decisions:
 - Focus: a darker border, no ring, on every field (C.3: the indigo ring from B.1b felt heavy).
 - `/` anywhere outside a text field focuses the search box; a `/` hint shows in the box until it
   has focus or text (C.3). The first piece of keyboard navigation (backlog).
+- Tags filter through the search box only (C.4): type `#tag`, or click a tag on an open note. The
+  tag chips above the list are gone (they don't scale to ~100 tags). A Tags dropdown was built and
+  dropped: redundant with the search box, and it squeezed it.
 - Theme: slate neutrals + indigo accent (`#4f46e5`). Font: Inter for text, Geist Mono for code and
   IDs (B.1a, picked from the style guide and a side-by-side gallery).
 - The style guide's template (`dev/templates/`) is a Tailwind source, so the production CSS also
@@ -81,6 +83,14 @@ From C.2 (2026-10-10):
 - The sandbox serves static files without `Cache-Control`: after JS or CSS changes, hard-refresh
   (the stale `app.js` explained a missing selection highlight during C.1's review).
 
+From C.4 (2026-10-10):
+
+- The dropdown worked (filter field, checkboxes, counts, Clear), but in use it duplicated the search
+  box. Real notes have no tags yet anyway (see 5.2). If tags grow, `#` autocomplete in the search
+  box would scale without a second control (backlog).
+- The gallery caught the dropdown mid-animation (Playwright acts faster than its 200 ms opening):
+  `settle` now also waits for running CSS animations; kept.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -102,7 +112,8 @@ From C.2 (2026-10-10):
   scroll, light-grey selection (W3–W6, W10)
 - [x] C.2 New notes appear in the list at once (W7: investigate first)
 - [x] C.3 Search box with a visible border (W8, done by the retheme); `/` focuses it
-- [ ] C.4 Tag filter for ~100 tags: dropdown, type-to-filter, checkboxes (W9)
+- [x] C.4 Tags (W9): chips removed; filter by `#tag` in the search box (a dropdown was tried and
+  dropped)
 - [ ] C.5 Search snippets as plain text, not raw Markdown (`# Title Tags: …`)
 
 ## Phase D: Note pane
@@ -114,3 +125,4 @@ From C.2 (2026-10-10):
 ## Backlog
 
 - Syntax highlighting in code blocks (` ```python `).
+- `#` autocomplete in the search box (type `#la`, pick a tag), if tags grow (C.4).

@@ -180,8 +180,7 @@ def note_page(
 @router.get("/notes", dependencies=READ)
 def note_list(request: Request, session: SessionDep) -> HTMLResponse:
     """The sidebar: recently edited notes first."""
-    found = notes.list_notes(session, order="updated")
-    return _partial(request, "note_list.html", notes=found, tags=notes.list_tags(session))
+    return _partial(request, "note_list.html", notes=notes.list_notes(session, order="updated"))
 
 
 @router.get("/search", dependencies=READ)

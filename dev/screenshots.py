@@ -25,10 +25,13 @@ SIZES = {1440: 900, 1024: 700}  # Width: height. A desktop window, and a narrow 
 
 
 def settle(page: Page) -> None:
-    """Wait until the network is quiet and htmx has finished swapping."""
+    """Wait until the network is quiet, htmx has finished swapping and transitions have ended."""
     page.wait_for_load_state("networkidle")
     page.wait_for_function(
         "() => !document.querySelector('.htmx-request, .htmx-swapping, .htmx-settling')"
+    )
+    page.wait_for_function(
+        "() => document.getAnimations().every((animation) => animation.playState !== 'running')"
     )
 
 

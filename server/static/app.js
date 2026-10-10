@@ -133,11 +133,6 @@ function applySearch() {
   const list = document.getElementById("note-list");
   if (!input || !list) return;
   const { tags, phrase: query } = parseQuery(input.value);
-  for (const chip of document.querySelectorAll(".tag-chip[data-tag]")) {
-    const active = tags.includes(chip.dataset.tag);
-    chip.classList.toggle("badge-primary", active);
-    chip.classList.toggle("badge-secondary", !active);
-  }
   let shown = 0;
   for (const item of list.querySelectorAll("li[data-text]")) {
     let entry = searchIndex.get(item);
@@ -205,7 +200,7 @@ function toggleTag(tag) {
   else applySearch();
 }
 
-// Tag chips in the sidebar and tags in the note view; the ranking's close button.
+// Tags in the note view (they toggle `#tag` in the search box); the ranking's close button.
 document.addEventListener("click", (event) => {
   if (event.target.closest("[data-close-ranking]")) {
     showRanking(false);

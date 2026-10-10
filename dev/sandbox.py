@@ -118,15 +118,12 @@ def sample_notes() -> list["NoteData"]:
 @router.get("/styleguide")
 def styleguide(request: Request) -> HTMLResponse:
     """Every part of the UI on one page, rendered by the real partials with fixture data."""
-    from collections import Counter
-
     from aeris_server.auth import Token
-    from aeris_server.notes import SearchHit, TagCount
+    from aeris_server.notes import SearchHit
     from aeris_server.parsing import preview
     from aeris_server.web import CONFLICT_MESSAGE, render_markdown
 
     notes = sample_notes()
-    counts = Counter(tag for note in notes for tag in note.tags)
     ranked = [
         SearchHit(
             **note.model_dump(include={"id", "title", "tags", "created_at", "updated_at"}),
@@ -140,7 +137,6 @@ def styleguide(request: Request) -> HTMLResponse:
         "token": Token(name="sandbox", scope="rw", secret=TOKEN),  # Shows the logged-in top bar.
         "colors": COLORS,
         "notes": notes,
-        "tags": [TagCount(tag=tag, count=count) for tag, count in sorted(counts.items())],
         "ranked": ranked,
         "long_note": long_note,
         "long_html": render_markdown(long_note.content or ""),
