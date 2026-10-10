@@ -236,6 +236,15 @@ document.addEventListener("keydown", (event) => {
 // Re-apply the current search whenever the sidebar is (re)loaded.
 htmx.onLoad(applySearch);
 
+// After creating a note, show the whole list so the new note appears (and is selected): clear the
+// search box and close any ranking. The server's `HX-Trigger: noteCreated` also reloads the list.
+document.addEventListener("noteCreated", () => {
+  const input = document.getElementById("search");
+  if (input) input.value = "";
+  showRanking(false);
+  applySearch();
+});
+
 // Mark the note whose page we're on (`/n/42`) in the sidebar, for styling and screen readers.
 function markCurrent() {
   const match = location.pathname.match(/^\/n\/(\d+)$/);

@@ -13,6 +13,9 @@ Decisions:
 - Light only, no dark mode. A little color, not greyscale. daisyUI components first (doc §3).
 - Tag filter: our own small component, not a third-party library.
 - The sidebar lists notes by last update, and rows show no tag badges (C.1).
+- Creating a note clears the search box and closes the ranking, so the new note shows (C.2). Notes
+  added elsewhere (CLI, agents, another tab) appear on the next reload: no refresh on focus or
+  polling (C.2).
 - Theme: slate neutrals + indigo accent (`#4f46e5`). Font: Inter for text, Geist Mono for code and
   IDs (B.1a, picked from the style guide and a side-by-side gallery).
 - The style guide's template (`dev/templates/`) is a Tailwind source, so the production CSS also
@@ -67,6 +70,14 @@ From C.1 (2026-10-10):
 - Relative times are `<time data-ago>`, refreshed every minute by `app.js` (they used to freeze at
   render time). Selection is `aria-current="page"`, styled with the accent tint and a left bar.
 
+From C.2 (2026-10-10):
+
+- Creating a note always reloaded the list (`HX-Trigger: noteCreated`), but an active search filter
+  hid the new row at once, and ranked results covered the list. Reproduced in the sandbox; both
+  fixed by one `noteCreated` listener in `app.js`.
+- The sandbox serves static files without `Cache-Control`: after JS or CSS changes, hard-refresh
+  (the stale `app.js` explained a missing selection highlight during C.1's review).
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -86,7 +97,7 @@ From C.1 (2026-10-10):
 
 - [x] C.1 Note rows: equal height, title / ID + relative time / preview, dividers, no horizontal
   scroll, light-grey selection (W3–W6, W10)
-- [ ] C.2 New notes appear in the list at once (W7: investigate first)
+- [x] C.2 New notes appear in the list at once (W7: investigate first)
 - [ ] C.3 Search box with a visible border (W8)
 - [ ] C.4 Tag filter for ~100 tags: dropdown, type-to-filter, checkboxes (W9)
 - [ ] C.5 Search snippets as plain text, not raw Markdown (`# Title Tags: …`)
