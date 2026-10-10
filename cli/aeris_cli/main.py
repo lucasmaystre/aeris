@@ -112,6 +112,32 @@ def search(
 
 
 @app.command()
+def ask(
+    query: Annotated[list[str], typer.Argument(help="What you're looking for, in your words.")],
+    tag: Annotated[
+        str | None, typer.Option(help="Only notes with this tag or its children.")
+    ] = None,
+    limit: Annotated[int, typer.Option(min=1, help="How many notes to show.")] = 10,
+    json_output: JsonOption = False,
+) -> None:
+    """Find the notes closest in meaning to a question, best first, with a similarity score."""
+    question = " ".join(query)
+    with _errors(json_output):
+        data = make_client().search(question, mode="semantic", tag=tag, limit=limit)
+    if json_output:
+        _print_json(data)
+        return
+    if not data["hits"]:
+        typer.echo("No notes found.", err=True)
+    width = _id_width(data["hits"])
+    indent = " " * (width + 26)  # Lines the snippet up with the title.
+    for hit in data["hits"]:
+        typer.echo(f"{hit['score']:.2f}  {_summary(hit, width, 'created_at')}")
+        if hit["snippet"]:
+            typer.echo(indent + hit["snippet"])
+
+
+@app.command()
 def tags(json_output: JsonOption = False) -> None:
     """List tags with how many notes carry each."""
     with _errors(json_output):

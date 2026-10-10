@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from aeris_server import notes
 from aeris_server.auth import require_read, require_write
 from aeris_server.db import get_session
+from aeris_server.embeddings import EmbeddingError
 from aeris_server.notes import NoteData, Order, SearchHit, TagCount
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_read)])
@@ -56,6 +57,8 @@ def _service_errors() -> Iterator[None]:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(error)) from error
     except (notes.EmptyContent, notes.EmptyQuery) as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
+    except EmbeddingError as error:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(error)) from error
 
 
 @router.get("/notes")
@@ -93,12 +96,16 @@ def get_note(session: SessionDep, note_id: int) -> NoteData:
 def search(
     session: SessionDep,
     q: str,
-    mode: Literal["text"] = "text",
+    mode: Literal["text", "semantic"] = "text",
     tag: str | None = None,
     limit: Annotated[int | None, Query(ge=1)] = None,
 ) -> SearchResults:
-    """Substring search, ignoring case and accents. Semantic mode arrives in phase 4."""
+    """`text`: notes containing `q`, ignoring case and accents, newest first. `semantic`: the notes
+    closest in meaning, best first, with a score (10 unless `limit` says otherwise)."""
     with _service_errors():
+        if mode == "semantic":
+            limit = limit or notes.SEMANTIC_LIMIT
+            return SearchResults(hits=notes.semantic_search(session, q, tag=tag, limit=limit))
         return SearchResults(hits=notes.search_notes(session, q, tag=tag, limit=limit))
 
 

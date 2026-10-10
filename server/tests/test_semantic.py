@@ -1,34 +1,45 @@
-"""Embedding notes on write, and reindexing. OpenRouter is replaced by a fake embedder."""
+"""Embedding notes on write, reindexing and semantic search. OpenRouter is replaced by a fake."""
 
 import hashlib
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from aeris_server import db, embeddings
 from aeris_server.admin import main
+from aeris_server.app import app
 from aeris_server.db import Note, NoteEmbedding
 from aeris_server.embeddings import EmbeddingError
-from aeris_server.notes import append_note, create_note, reindex, update_note
+from aeris_server.notes import (
+    EmptyQuery,
+    append_note,
+    create_note,
+    delete_note,
+    reindex,
+    semantic_search,
+    update_note,
+)
 
 MODEL = "fake/model"
 
 
 class FakeEmbedder:
-    """Records each request's texts; vectors encode the text's length.
+    """Records each request's texts. Vectors come from `vectors`, else encode the text's length.
 
     Fails every request once `fail_after` requests have succeeded (0: fail from the start).
     """
 
     def __init__(self) -> None:
         self.calls: list[list[str]] = []
+        self.vectors: dict[str, list[float]] = {}
         self.fail_after: int | None = None
 
     def __call__(self, texts: list[str], **_: object) -> list[list[float]]:
         if self.fail_after is not None and len(self.calls) >= self.fail_after:
             raise EmbeddingError("OpenRouter returned 500.")
         self.calls.append(texts)
-        return [[float(len(text)), 1.0] for text in texts]
+        return [self.vectors.get(text, [float(len(text)), 1.0]) for text in texts]
 
 
 @pytest.fixture
@@ -172,3 +183,94 @@ def test_admin_reindex_failure(embedder: FakeEmbedder) -> None:
         main(["reindex"])
     with db.session() as session:
         assert session.scalars(select(NoteEmbedding)).all() == []
+
+
+# Semantic search.
+
+CATS = "Cats\nThey purr."
+DOGS = "Dogs\nThey bark.\nTags: #pets"
+TAXES = "Taxes\nForms to file.\nTags: #admin"
+
+
+@pytest.fixture
+def pets(embedder: FakeEmbedder) -> dict[str, int]:
+    """Three notes at known angles from the query `felines`: 0, about 37 and 90 degrees."""
+    embedder.vectors = {
+        CATS: [1.0, 0.0],
+        DOGS: [0.8, 0.6],
+        TAXES: [0.0, 1.0],
+        "felines": [1.0, 0.0],
+    }
+    with db.session() as session:
+        return {
+            name: create_note(session, content).id
+            for name, content in [("cats", CATS), ("dogs", DOGS), ("taxes", TAXES)]
+        }
+
+
+def _ranked(*, tag: str | None = None, limit: int = 10) -> list[tuple[int, float]]:
+    with db.session() as session:
+        hits = semantic_search(session, "felines", tag=tag, limit=limit)
+    return [(hit.id, round(hit.score or 0, 4)) for hit in hits]
+
+
+@pytest.mark.usefixtures("database")
+def test_semantic_search_ranks_by_similarity(pets: dict[str, int]) -> None:
+    assert _ranked() == [(pets["cats"], 1.0), (pets["dogs"], 0.8), (pets["taxes"], 0.0)]
+    assert _ranked(limit=1) == [(pets["cats"], 1.0)]
+    with db.session() as session:
+        [hit] = semantic_search(session, "felines", limit=1)
+    assert (hit.title, hit.snippet, hit.tags) == ("Cats", "They purr.", [])
+
+
+@pytest.mark.usefixtures("database")
+def test_semantic_search_by_tag(pets: dict[str, int]) -> None:
+    assert _ranked(tag="#admin") == [(pets["taxes"], 0.0)]
+
+
+@pytest.mark.usefixtures("database")
+def test_semantic_search_skips_deleted_unembedded_and_other_models(pets: dict[str, int]) -> None:
+    _add("Never embedded")
+    with db.session() as session:
+        delete_note(session, pets["dogs"])
+        session.get_one(NoteEmbedding, pets["taxes"]).model = "old/model"
+        session.commit()
+    assert _ranked() == [(pets["cats"], 1.0)]
+
+
+@pytest.mark.usefixtures("database")
+def test_semantic_search_errors(embedder: FakeEmbedder) -> None:
+    with db.session() as session:
+        with pytest.raises(EmptyQuery):
+            semantic_search(session, "  ")
+        assert embedder.calls == []
+        embedder.fail_after = 0
+        with pytest.raises(EmbeddingError):
+            semantic_search(session, "anything")
+
+
+@pytest.fixture
+def client(database: None, api_tokens: dict[str, str]) -> TestClient:
+    return TestClient(app, headers={"Authorization": f"Bearer {api_tokens['ro']}"})
+
+
+def test_api_semantic_search(client: TestClient, pets: dict[str, int]) -> None:
+    hits = client.get("/api/search?q=felines&mode=semantic").json()["hits"]
+    assert [(hit["id"], round(hit["score"], 4)) for hit in hits] == [
+        (pets["cats"], 1.0),
+        (pets["dogs"], 0.8),
+        (pets["taxes"], 0.0),
+    ]
+    assert hits[0]["snippet"] == "They purr."
+    limited = client.get("/api/search?q=felines&mode=semantic&limit=1&tag=pets").json()
+    assert [hit["id"] for hit in limited["hits"]] == [pets["dogs"]]
+
+
+def test_api_semantic_search_errors(client: TestClient, embedder: FakeEmbedder) -> None:
+    assert client.get("/api/search?q=%20&mode=semantic").status_code == 422
+    embedder.fail_after = 0
+    response = client.get("/api/search?q=x&mode=semantic")
+    assert (response.status_code, response.json()) == (
+        502,
+        {"detail": "OpenRouter returned 500."},
+    )

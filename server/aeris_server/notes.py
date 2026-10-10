@@ -4,7 +4,7 @@ import hashlib
 import logging
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 from sqlalchemy import Select, func, or_, select
@@ -13,10 +13,11 @@ from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from aeris_server import embeddings
 from aeris_server.db import Note, NoteEmbedding, NoteRevision
-from aeris_server.parsing import extract_tags, normalize, snippet, title
+from aeris_server.parsing import extract_tags, normalize, preview, snippet, title
 
 Order = Literal["created", "updated"]
 REINDEX_BATCH_SIZE = 50
+SEMANTIC_LIMIT = 10
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,43 @@ def search_notes(
     return hits
 
 
+def semantic_search(
+    session: Session, query: str, *, tag: str | None = None, limit: int = SEMANTIC_LIMIT
+) -> list[SearchHit]:
+    """The notes closest in meaning to `query`, best first, scored by cosine similarity.
+
+    Only compares embeddings from the current model: others have a different meaning (and maybe
+    dimension). Notes without one are left out. Raises `EmbeddingError` if the query can't be
+    embedded.
+    """
+    if not query.strip():
+        raise EmptyQuery()
+    (vector,) = embeddings.embed([query.strip()])
+    distance = NoteEmbedding.embedding.cosine_distance(vector)
+    rows = session.execute(
+        _with_tag(
+            select(Note, distance)
+            .join(NoteEmbedding, NoteEmbedding.note_id == Note.id)
+            .where(Note.deleted.is_(False), NoteEmbedding.model == embeddings.embedding_model())
+            .order_by(distance, Note.id)
+            .limit(limit),
+            tag,
+        )
+    )
+    return [
+        SearchHit(
+            id=note.id,
+            title=title(note.content),
+            tags=note.tags,
+            created_at=note.created_at,
+            updated_at=note.updated_at,
+            snippet=preview(note.content),
+            score=1 - note_distance,
+        )
+        for note, note_distance in rows
+    ]
+
+
 def list_tags(session: Session) -> list[TagCount]:
     """Every tag on a live note, alphabetically, with how many notes carry it."""
     tag = func.unnest(Note.tags).label("tag")
@@ -256,15 +294,18 @@ def _live_notes(order: Order, tag: str | None) -> Select[tuple[Note]]:
     """Non-deleted notes, newest first, optionally with a tag or one of its children."""
     timestamp = _timestamp(order)
     query = select(Note).where(Note.deleted.is_(False)).order_by(timestamp.desc(), Note.id.desc())
-    if tag is not None:
-        tag = tag.removeprefix("#").lower()
-        element = func.unnest(Note.tags).column_valued("tag")
-        query = query.where(
-            select(element)
-            .where(or_(element == tag, func.starts_with(element, tag + "/")))
-            .exists()
-        )
-    return query
+    return _with_tag(query, tag)
+
+
+def _with_tag[Q: Select[Any]](query: Q, tag: str | None) -> Q:
+    """Keep notes with `tag` or one of its children: `project` matches `project/aeris`."""
+    if tag is None:
+        return query
+    tag = tag.removeprefix("#").lower()
+    element = func.unnest(Note.tags).column_valued("tag")
+    return query.where(
+        select(element).where(or_(element == tag, func.starts_with(element, tag + "/"))).exists()
+    )
 
 
 def _clean(content: str) -> str:

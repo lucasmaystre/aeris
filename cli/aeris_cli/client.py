@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 
@@ -50,10 +50,20 @@ class Client:
         return self._get("/api/notes", {"ids": ",".join(str(note_id) for note_id in ids)})
 
     def search(
-        self, query: str, *, tag: str | None = None, limit: int | None = None
+        self,
+        query: str,
+        *,
+        mode: Literal["text", "semantic"] = "text",
+        tag: str | None = None,
+        limit: int | None = None,
     ) -> dict[str, Any]:
-        """Notes containing `query`, ignoring case and accents, newest first, with snippets."""
+        """Notes containing `query`, ignoring case and accents, newest first, with snippets.
+
+        With `mode="semantic"`: the notes closest in meaning, best first, with scores.
+        """
         params: dict[str, str | int] = {"q": query}
+        if mode != "text":
+            params["mode"] = mode
         if tag is not None:
             params["tag"] = tag
         if limit is not None:

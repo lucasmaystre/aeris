@@ -80,7 +80,7 @@ def test_search(client: TestClient) -> None:
     assert (hit["id"], hit["snippet"], hit["score"]) == (note_id, "Un été chaud", None)
     assert "content" not in hit
     assert client.get("/api/search?q=%20").status_code == 422
-    assert client.get("/api/search?q=x&mode=semantic").status_code == 422
+    assert client.get("/api/search?q=x&mode=fuzzy").status_code == 422
 
 
 def test_tags(client: TestClient) -> None:

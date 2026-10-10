@@ -259,6 +259,47 @@ def test_search_empty_query(server: FakeServer) -> None:
     assert runner.invoke(app, ["search"]).exit_code == 2
 
 
+# ask.
+
+
+def test_ask(server: FakeServer) -> None:
+    server.body = {
+        "hits": [
+            {**_hit(NOTE_7, "Body of seven."), "score": 0.6234},
+            {**_hit(NOTE_12, ""), "score": 0.4},
+        ]
+    }
+    result = runner.invoke(app, ["ask", "what", "about", "work?"])
+    assert result.exit_code == 0
+    assert result.stdout.splitlines() == [
+        "0.62   7  2026-10-01 10:00  Seven  #work",
+        "                            Body of seven.",
+        "0.40  12  2026-10-05 13:30  Twelve",
+    ]
+    assert server.params == {"q": "what about work?", "mode": "semantic", "limit": "10"}
+    assert server.requests[-1].url.path == "/api/search"
+
+
+def test_ask_options_and_json(server: FakeServer) -> None:
+    server.body = {"hits": [{**_hit(NOTE_7, "Body of seven."), "score": 0.5}]}
+    result = runner.invoke(app, ["ask", "x", "--tag", "work", "--limit", "3", "--json"])
+    assert json.loads(result.stdout) == server.body
+    assert server.params == {"q": "x", "mode": "semantic", "tag": "work", "limit": "3"}
+
+
+def test_ask_no_hits(server: FakeServer) -> None:
+    server.body = {"hits": []}
+    result = runner.invoke(app, ["ask", "anything"])
+    assert (result.exit_code, result.stdout, result.stderr) == (0, "", "No notes found.\n")
+
+
+def test_ask_embedding_failure(server: FakeServer) -> None:
+    server.status, server.body = 502, {"detail": "OpenRouter returned 500."}
+    result = runner.invoke(app, ["ask", "anything", "--json"])
+    assert result.exit_code == 1
+    assert json.loads(result.stdout) == {"error": "OpenRouter returned 500.", "status": 502}
+
+
 # tags.
 
 
