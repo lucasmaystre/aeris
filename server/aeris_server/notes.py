@@ -150,11 +150,11 @@ def search_notes(
 
 
 def semantic_search(
-    session: Session, query: str, *, tag: str | None = None, limit: int = SEMANTIC_LIMIT
+    session: Session, query: str, *, tags: Sequence[str] = (), limit: int = SEMANTIC_LIMIT
 ) -> list[SearchHit]:
     """The notes closest in meaning to `query`, best first, scored by cosine similarity.
 
-    Only compares embeddings from the current model: others have a different meaning (and maybe
+    Keeps notes with every tag in `tags` (or their children). Only compares embeddings from the current model: others have a different meaning (and maybe
     dimension). Notes without one are left out. Raises `EmbeddingError` if the query can't be
     embedded.
     """
@@ -162,16 +162,16 @@ def semantic_search(
         raise EmptyQuery()
     (vector,) = embeddings.embed([query.strip()])
     distance = NoteEmbedding.embedding.cosine_distance(vector)
-    rows = session.execute(
-        _with_tag(
-            select(Note, distance)
-            .join(NoteEmbedding, NoteEmbedding.note_id == Note.id)
-            .where(Note.deleted.is_(False), NoteEmbedding.model == embeddings.embedding_model())
-            .order_by(distance, Note.id)
-            .limit(limit),
-            tag,
-        )
+    statement = (
+        select(Note, distance)
+        .join(NoteEmbedding, NoteEmbedding.note_id == Note.id)
+        .where(Note.deleted.is_(False), NoteEmbedding.model == embeddings.embedding_model())
+        .order_by(distance, Note.id)
+        .limit(limit)
     )
+    for tag in tags:
+        statement = _with_tag(statement, tag)
+    rows = session.execute(statement)
     return [
         SearchHit(
             id=note.id,

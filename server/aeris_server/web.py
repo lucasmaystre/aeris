@@ -1,12 +1,13 @@
 """HTML routes for the browser. Thin wrappers around the service layer."""
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal
 from urllib.parse import urlencode, urlsplit
 
 import markdown2
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 from aeris_server import auth, notes
 from aeris_server.auth import COOKIE_NAME, Token
 from aeris_server.db import get_session
+from aeris_server.embeddings import EmbeddingError
 from aeris_server.notes import NoteData
 from aeris_server.parsing import preview
 
@@ -23,6 +25,9 @@ LOCAL_HOSTS = {"localhost", "127.0.0.1"}
 CONFLICT_MESSAGE = (
     "This note changed since you opened it. Saving again will overwrite those changes."
 )
+RANKING_UNAVAILABLE = "Ranking isn't available right now."
+
+logger = logging.getLogger(__name__)
 
 _MARKDOWN_EXTRAS = ["fenced-code-blocks", "tables", "strike"]
 _AGO_UNITS = [
@@ -169,6 +174,27 @@ def note_list(request: Request, session: SessionDep) -> HTMLResponse:
     return _partial(
         request, "note_list.html", notes=notes.list_notes(session), tags=notes.list_tags(session)
     )
+
+
+@router.get("/search", dependencies=READ)
+def ranked_notes(
+    request: Request,
+    session: SessionDep,
+    q: str = "",
+    tag: Annotated[list[str] | None, Query()] = None,
+) -> HTMLResponse:
+    """Notes ranked by semantic similarity to `q`, for the sidebar. Text filtering stays in the
+    browser. Errors are shown in the results (htmx doesn't swap error responses)."""
+    hits: list[notes.SearchHit] = []
+    error = None
+    try:
+        hits = notes.semantic_search(session, q, tags=tag or [])
+    except notes.EmptyQuery as empty:
+        error = str(empty)
+    except EmbeddingError as failure:
+        logger.warning("Ranking failed: %s", failure)
+        error = RANKING_UNAVAILABLE
+    return _partial(request, "ranked_notes.html", hits=hits, error=error)
 
 
 # Before `/notes/{note_id}`, which would otherwise match `new`.

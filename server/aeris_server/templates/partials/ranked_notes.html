@@ -1,0 +1,36 @@
+<div class="flex items-center gap-2 pl-5 pr-3 pb-1 text-xs opacity-70">
+  <span class="flex-1">Ranked by similarity{% if not error %} · {{ hits | length }}{% endif %}</span>
+  <button type="button" class="btn btn-ghost btn-xs" data-close-ranking
+          title="Back to the list" aria-label="Back to the list">✕</button>
+</div>
+{% if error %}
+<p class="px-5 py-2 text-sm text-error">{{ error }}</p>
+{% else %}
+<ul class="menu w-full px-2 pt-0 gap-0.5">
+  {% for hit in hits %}
+  <li data-id="{{ hit.id }}">
+    <a class="flex flex-col items-stretch gap-1 py-2 cursor-pointer"
+       href="/n/{{ hit.id }}"
+       hx-get="/notes/{{ hit.id }}"
+       hx-push-url="/n/{{ hit.id }}"
+       hx-target="#main-panel"
+       hx-swap="innerHTML">
+      <div class="flex items-baseline gap-2">
+        <span class="flex-1 font-semibold truncate">{{ hit.title or "(untitled)" }}</span>
+        <span class="flex-none text-xs opacity-50 tabular-nums" title="Cosine similarity">{{ "%.2f" | format(hit.score) }}</span>
+      </div>
+      {% if hit.snippet %}
+      <p class="text-xs opacity-70 leading-snug line-clamp-2">{{ hit.snippet }}</p>
+      {% endif %}
+      {% if hit.tags %}
+      <div class="flex flex-wrap gap-1">
+        {% for tag in hit.tags %}<span class="badge badge-sm badge-secondary">#{{ tag }}</span>{% endfor %}
+      </div>
+      {% endif %}
+    </a>
+  </li>
+  {% else %}
+  <li class="menu-disabled"><span class="text-sm">No notes to rank.</span></li>
+  {% endfor %}
+</ul>
+{% endif %}

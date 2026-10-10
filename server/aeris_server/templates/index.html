@@ -11,8 +11,8 @@
               hx-swap="innerHTML">
         New note
       </button>
-      <input id="search" type="search" placeholder="Search notes…" autocomplete="off"
-             aria-label="Search notes" class="input input-sm w-full">
+      <input id="search" type="search" placeholder="Filter, or Enter to rank by similarity"
+             autocomplete="off" aria-label="Search notes" class="input input-sm w-full">
     </div>
 
     <div id="note-list-container" class="flex-1 overflow-y-auto"
@@ -21,6 +21,8 @@
          hx-target="#note-list-container"
          hx-swap="innerHTML">
     </div>
+    <!-- Stands in for the list while ranking, so list reloads can't replace the results. -->
+    <div id="ranked-notes" class="flex-1 overflow-y-auto" hidden></div>
   </aside>
 
   <main id="main-panel" class="flex-1 overflow-y-auto">

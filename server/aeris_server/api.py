@@ -105,7 +105,8 @@ def search(
     with _service_errors():
         if mode == "semantic":
             limit = limit or notes.SEMANTIC_LIMIT
-            return SearchResults(hits=notes.semantic_search(session, q, tag=tag, limit=limit))
+            tags = [tag] if tag else []
+            return SearchResults(hits=notes.semantic_search(session, q, tags=tags, limit=limit))
         return SearchResults(hits=notes.search_notes(session, q, tag=tag, limit=limit))
 
 

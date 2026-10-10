@@ -74,13 +74,16 @@ function snippetNodes(entry, start, length) {
   ];
 }
 
-// Split the search box into tag filters (`#word`, lowercased) and the text phrase.
+// Split the search box into tag filters (`#word`, lowercased) and the phrase: as typed (`text`)
+// and normalized (`phrase`).
 function parseQuery(value) {
   const words = value.trim().split(/\s+/).filter(Boolean);
   const isTag = (word) => word.startsWith("#") && word.length > 1;
+  const text = words.filter((word) => !isTag(word)).join(" ");
   return {
     tags: words.filter(isTag).map((word) => word.slice(1).toLowerCase()),
-    phrase: normalize(words.filter((word) => !isTag(word)).join(" ")).trim(),
+    text,
+    phrase: normalize(text).trim(),
   };
 }
 
@@ -118,6 +121,39 @@ function applySearch() {
   }
   const noMatches = list.querySelector(".no-matches");
   if (noMatches) noMatches.hidden = (!query && !tags.length) || shown > 0;
+  const rankHint = list.querySelector(".rank-hint");
+  if (rankHint) rankHint.hidden = !query;
+}
+
+// Ranking: Enter ranks notes by semantic similarity to the phrase (the server embeds it, so it
+// takes about a second). The results stand in for the list; typing goes back to filtering.
+
+function isRanking() {
+  return !document.getElementById("ranked-notes")?.hidden;
+}
+
+function showRanking(on) {
+  const list = document.getElementById("note-list-container");
+  const ranked = document.getElementById("ranked-notes");
+  if (!list || !ranked) return;
+  list.hidden = on;
+  ranked.hidden = !on;
+}
+
+function rank() {
+  const input = document.getElementById("search");
+  const ranked = document.getElementById("ranked-notes");
+  if (!input || !ranked) return;
+  const { tags, text } = parseQuery(input.value);
+  if (!text) return;
+  const params = new URLSearchParams({ q: text });
+  for (const tag of tags) params.append("tag", tag);
+  const waiting = document.createElement("p");
+  waiting.className = "px-5 py-2 text-sm opacity-60";
+  waiting.textContent = "Ranking…";
+  ranked.replaceChildren(waiting);
+  showRanking(true);
+  htmx.ajax("GET", `/search?${params}`, { target: ranked, swap: "innerHTML" });
 }
 
 // Add `#tag` to the search box, or remove it if it's there, then filter.
@@ -129,11 +165,16 @@ function toggleTag(tag) {
   const present = words.some((w) => w.toLowerCase() === word);
   const kept = present ? words.filter((w) => w.toLowerCase() !== word) : [...words, word];
   input.value = kept.join(" ");
-  applySearch();
+  if (isRanking()) rank();
+  else applySearch();
 }
 
-// Tag chips in the sidebar and tags in the note view.
+// Tag chips in the sidebar and tags in the note view; the ranking's close button.
 document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-ranking]")) {
+    showRanking(false);
+    return;
+  }
   const tag = event.target.closest("[data-tag]");
   if (!tag) return;
   event.preventDefault();
@@ -141,11 +182,18 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("input", (event) => {
-  if (event.target.id === "search") applySearch();
+  if (event.target.id !== "search") return;
+  showRanking(false);
+  applySearch();
 });
 document.addEventListener("keydown", (event) => {
-  if (event.target.id === "search" && event.key === "Escape") {
+  if (event.target.id !== "search") return;
+  if (event.key === "Enter" && !event.isComposing) {
+    event.preventDefault();
+    rank();
+  } else if (event.key === "Escape") {
     event.target.value = "";
+    showRanking(false);
     applySearch();
   }
 });
@@ -156,7 +204,7 @@ htmx.onLoad(applySearch);
 function markCurrent() {
   const match = location.pathname.match(/^\/n\/(\d+)$/);
   const current = match ? match[1] : null;
-  for (const item of document.querySelectorAll("#note-list li[data-id]")) {
+  for (const item of document.querySelectorAll("#sidebar li[data-id]")) {
     item.querySelector("a").classList.toggle("menu-active", item.dataset.id === current);
   }
 }
@@ -165,6 +213,7 @@ htmx.onLoad(markCurrent);
 document.addEventListener("htmx:pushedIntoHistory", markCurrent);
 // Back and forward restore an earlier page: bring its filter and highlight up to date.
 document.addEventListener("htmx:historyRestore", () => {
+  if (!document.getElementById("search")?.value.trim()) showRanking(false);
   applySearch();
   markCurrent();
 });

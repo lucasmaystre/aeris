@@ -36,6 +36,9 @@
   <li class="menu-disabled"><span class="text-sm">No notes yet.</span></li>
   {% endfor %}
   {% if notes %}
-  <li class="no-matches menu-disabled" hidden><span class="text-sm">No notes match.</span></li>
+  <li class="no-matches menu-disabled" hidden>
+    <!-- One inner block: menu items lay out their children as columns. -->
+    <div class="text-sm"><p>No notes match.<span class="rank-hint"> Press Enter to rank by similarity.</span></p></div>
+  </li>
   {% endif %}
 </ul>

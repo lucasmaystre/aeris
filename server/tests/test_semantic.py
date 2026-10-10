@@ -20,6 +20,7 @@ from aeris_server.notes import (
     semantic_search,
     update_note,
 )
+from aeris_server.web import RANKING_UNAVAILABLE
 
 MODEL = "fake/model"
 
@@ -208,9 +209,9 @@ def pets(embedder: FakeEmbedder) -> dict[str, int]:
         }
 
 
-def _ranked(*, tag: str | None = None, limit: int = 10) -> list[tuple[int, float]]:
+def _ranked(*, tags: list[str] | None = None, limit: int = 10) -> list[tuple[int, float]]:
     with db.session() as session:
-        hits = semantic_search(session, "felines", tag=tag, limit=limit)
+        hits = semantic_search(session, "felines", tags=tags or [], limit=limit)
     return [(hit.id, round(hit.score or 0, 4)) for hit in hits]
 
 
@@ -225,7 +226,8 @@ def test_semantic_search_ranks_by_similarity(pets: dict[str, int]) -> None:
 
 @pytest.mark.usefixtures("database")
 def test_semantic_search_by_tag(pets: dict[str, int]) -> None:
-    assert _ranked(tag="#admin") == [(pets["taxes"], 0.0)]
+    assert _ranked(tags=["#admin"]) == [(pets["taxes"], 0.0)]
+    assert _ranked(tags=["pets", "admin"]) == []
 
 
 @pytest.mark.usefixtures("database")
@@ -274,3 +276,37 @@ def test_api_semantic_search_errors(client: TestClient, embedder: FakeEmbedder) 
         502,
         {"detail": "OpenRouter returned 500."},
     )
+
+
+# Ranking in the web UI.
+
+
+def test_web_ranking(client: TestClient, pets: dict[str, int]) -> None:
+    html = client.get("/search?q=felines").text
+    assert "Ranked by similarity · 3" in html
+    assert html.index("Cats") < html.index("Dogs") < html.index("Taxes")
+    assert f'hx-get="/notes/{pets["cats"]}"' in html
+    assert f'hx-push-url="/n/{pets["cats"]}"' in html
+    assert ">1.00<" in html and ">0.80<" in html
+    assert "They purr." in html
+
+    html = client.get("/search?q=felines&tag=pets").text
+    assert "Ranked by similarity · 1" in html
+    assert "Dogs" in html and "Cats" not in html
+    assert "No notes to rank." in client.get("/search?q=felines&tag=pets&tag=admin").text
+
+
+def test_web_ranking_errors(client: TestClient, embedder: FakeEmbedder) -> None:
+    response = client.get("/search?q=%20")
+    assert response.status_code == 200
+    assert "Search query cannot be empty." in response.text
+    embedder.fail_after = 0
+    response = client.get("/search?q=felines")
+    assert response.status_code == 200
+    assert RANKING_UNAVAILABLE.replace("'", "&#39;") in response.text
+    assert "data-close-ranking" in response.text
+
+
+def test_web_ranking_requires_login(api_tokens: dict[str, str]) -> None:
+    response = TestClient(app, follow_redirects=False).get("/search?q=x")
+    assert response.status_code == 303
