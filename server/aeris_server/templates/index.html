@@ -5,8 +5,12 @@
 
   <aside id="sidebar" class="w-80 flex-none flex flex-col overflow-hidden border-r border-base-300">
     <div class="flex-none p-3">
-      <input id="search" type="search" placeholder="Filter, or Enter to rank by similarity"
-             autocomplete="off" aria-label="Search notes" class="input input-sm w-full">
+      <label class="input input-sm w-full">
+        <input id="search" type="search" placeholder="Filter, or Enter to rank by similarity"
+               autocomplete="off" aria-label="Search notes" class="peer grow">
+        <kbd class="kbd kbd-sm peer-focus:hidden peer-[:not(:placeholder-shown)]:hidden"
+             title="Press / to search">/</kbd>
+      </label>
     </div>
 
     <div id="note-list-container" class="flex-1 overflow-y-auto overflow-x-hidden"

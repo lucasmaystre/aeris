@@ -80,10 +80,11 @@
   font-size: var(--text-sm);
 }
 
-/* Focus shows in the accent, not near-black (daisyUI uses the text color). */
+/* Focus: no ring (daisyUI draws one), just a darker border. */
 .input:focus,
 .input:focus-within,
 .textarea:focus,
 .select:focus {
-  --input-color: var(--color-primary);
+  --input-color: color-mix(in oklab, var(--color-base-content) 45%, transparent);
+  outline: none;
 }

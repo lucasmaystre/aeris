@@ -16,6 +16,9 @@ Decisions:
 - Creating a note clears the search box and closes the ranking, so the new note shows (C.2). Notes
   added elsewhere (CLI, agents, another tab) appear on the next reload: no refresh on focus or
   polling (C.2).
+- Focus: a darker border, no ring, on every field (C.3: the indigo ring from B.1b felt heavy).
+- `/` anywhere outside a text field focuses the search box; a `/` hint shows in the box until it
+  has focus or text (C.3). The first piece of keyboard navigation (backlog).
 - Theme: slate neutrals + indigo accent (`#4f46e5`). Font: Inter for text, Geist Mono for code and
   IDs (B.1a, picked from the style guide and a side-by-side gallery).
 - The style guide's template (`dev/templates/`) is a Tailwind source, so the production CSS also
@@ -98,7 +101,7 @@ From C.2 (2026-10-10):
 - [x] C.1 Note rows: equal height, title / ID + relative time / preview, dividers, no horizontal
   scroll, light-grey selection (W3–W6, W10)
 - [x] C.2 New notes appear in the list at once (W7: investigate first)
-- [ ] C.3 Search box with a visible border (W8)
+- [x] C.3 Search box with a visible border (W8, done by the retheme); `/` focuses it
 - [ ] C.4 Tag filter for ~100 tags: dropdown, type-to-filter, checkboxes (W9)
 - [ ] C.5 Search snippets as plain text, not raw Markdown (`# Title Tags: …`)
 

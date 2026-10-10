@@ -222,6 +222,17 @@ document.addEventListener("input", (event) => {
   showRanking(false);
   applySearch();
 });
+// `/` anywhere but in a text field jumps to the search box.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.target.closest("input, textarea, select, [contenteditable]")) return;
+  const input = document.getElementById("search");
+  if (!input) return;
+  event.preventDefault();
+  input.focus();
+  input.select();
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.target.id !== "search") return;
   if (event.key === "Enter" && !event.isComposing) {
