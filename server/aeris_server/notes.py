@@ -1,17 +1,24 @@
 """Service layer: all note operations. Web and API routes are thin wrappers around these."""
 
+import hashlib
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
 from sqlalchemy import Select, func, or_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
-from aeris_server.db import Note, NoteRevision
+from aeris_server import embeddings
+from aeris_server.db import Note, NoteEmbedding, NoteRevision
 from aeris_server.parsing import extract_tags, normalize, snippet, title
 
 Order = Literal["created", "updated"]
+REINDEX_BATCH_SIZE = 50
+
+logger = logging.getLogger(__name__)
 
 
 class NoteData(BaseModel):
@@ -41,6 +48,11 @@ class SearchHit(BaseModel):
 class TagCount(BaseModel):
     tag: str
     count: int
+
+
+class ReindexResult(BaseModel):
+    embedded: int
+    up_to_date: int
 
 
 class NoteNotFound(Exception):
@@ -153,7 +165,9 @@ def create_note(session: Session, content: str) -> NoteData:
     note = Note(content=content, tags=extract_tags(content))
     session.add(note)
     session.commit()
-    return _to_data(note)
+    data = _to_data(note)
+    _embed(session, data)
+    return data
 
 
 def update_note(
@@ -174,16 +188,14 @@ def update_note(
         unchanged = _to_data(note)
         session.rollback()
         return unchanged
-    _replace(session, note, content)
-    return _to_data(note)
+    return _replace(session, note, content)
 
 
 def append_note(session: Session, note_id: int, text: str) -> NoteData:
     """Add text to the end of a note, as a new paragraph. Never conflicts."""
     text = _clean(text)
     note = _lock(session, note_id)
-    _replace(session, note, f"{note.content.rstrip()}\n\n{text}")
-    return _to_data(note)
+    return _replace(session, note, f"{note.content.rstrip()}\n\n{text}")
 
 
 def delete_note(session: Session, note_id: int) -> None:
@@ -206,6 +218,34 @@ def recompute_tags(session: Session) -> int:
             changed += 1
     session.commit()
     return changed
+
+
+def reindex(session: Session, *, batch_size: int = REINDEX_BATCH_SIZE) -> ReindexResult:
+    """Embed every live note whose embedding is missing or stale, `batch_size` notes per request.
+
+    Each batch is committed as it completes, so after an `EmbeddingError` running again resumes
+    where this run stopped.
+    """
+    model = embeddings.embedding_model()
+    query = (
+        select(Note.id, Note.content, NoteEmbedding.model, NoteEmbedding.content_hash)
+        .outerjoin(NoteEmbedding, NoteEmbedding.note_id == Note.id)
+        .where(Note.deleted.is_(False))
+        .order_by(Note.id)
+    )
+    rows = session.execute(query).all()
+    stale = [
+        (note_id, content)
+        for note_id, content, stored_model, stored_hash in rows
+        if stored_model != model or stored_hash != _hash(content)
+    ]
+    for start in range(0, len(stale), batch_size):
+        batch = stale[start : start + batch_size]
+        vectors = embeddings.embed([content for _, content in batch])
+        for (note_id, content), vector in zip(batch, vectors, strict=True):
+            _store_embedding(session, note_id, content, vector, model)
+        session.commit()
+    return ReindexResult(embedded=len(stale), up_to_date=len(rows) - len(stale))
 
 
 def _timestamp(order: Order) -> InstrumentedAttribute[datetime]:
@@ -244,12 +284,45 @@ def _lock(session: Session, note_id: int) -> Note:
     return note
 
 
-def _replace(session: Session, note: Note, content: str) -> None:
+def _replace(session: Session, note: Note, content: str) -> NoteData:
     session.add(NoteRevision(note_id=note.id, content=note.content))
     note.content = content
     note.tags = extract_tags(content)
     note.updated_at = func.now()
     session.commit()
+    data = _to_data(note)
+    _embed(session, data)
+    return data
+
+
+def _embed(session: Session, note: NoteData) -> None:
+    """Embed a just-saved note. Runs after the commit, so no lock is held while OpenRouter answers.
+
+    On failure the note stays saved, just missing from semantic search until the next reindex.
+    """
+    content = note.content or ""
+    try:
+        (vector,) = embeddings.embed([content])
+    except embeddings.EmbeddingError as error:
+        logger.warning("Couldn't embed note %d: %s", note.id, error)
+        return
+    _store_embedding(session, note.id, content, vector, embeddings.embedding_model())
+    session.commit()
+
+
+def _store_embedding(
+    session: Session, note_id: int, content: str, vector: list[float], model: str
+) -> None:
+    values = {"model": model, "content_hash": _hash(content), "embedding": vector}
+    session.execute(
+        insert(NoteEmbedding)
+        .values(note_id=note_id, **values)
+        .on_conflict_do_update(index_elements=[NoteEmbedding.note_id], set_=values)
+    )
+
+
+def _hash(content: str) -> str:
+    return hashlib.sha256(content.encode()).hexdigest()
 
 
 def _to_data(note: Note, *, content: bool = True) -> NoteData:

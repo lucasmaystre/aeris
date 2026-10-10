@@ -48,6 +48,7 @@ uv run ruff check && uv run ruff format && uv run pyright
 uv run fastapi dev server/main.py    # dev server
 scripts/css.sh [--watch]             # rebuild server/static/app.css after template changes; commit it
 uv run aeris-admin migrate           # apply migrations to AERIS_DATABASE_URL
+uv run aeris-admin reindex           # embed new or stale notes (needs AERIS_OPENROUTER_API_KEY)
 cd server && vercel deploy --prod    # deploy (Vercel CLI; no Git integration)
 ```
 

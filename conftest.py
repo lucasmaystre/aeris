@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from sqlalchemy import URL, Engine, create_engine, make_url, text
 from sqlalchemy.pool import NullPool
 
-from aeris_server import auth, db
+from aeris_server import auth, db, embeddings
 from aeris_server.migrate import migrate
 
 TEST_DATABASE_URL_VAR = "AERIS_TEST_DATABASE_URL"
@@ -24,6 +24,12 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
         if DB_FIXTURES & set(getattr(item, "fixturenames", ())):
             item.add_marker(pytest.mark.db)
+
+
+@pytest.fixture(autouse=True)
+def _no_openrouter(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Never call OpenRouter, even with a key in `.env`: embedding fails fast instead."""
+    monkeypatch.delenv(embeddings.API_KEY_VAR, raising=False)
 
 
 def _direct_url() -> URL:

@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from datetime import datetime
 from functools import cache
 
+from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import Boolean, DateTime, Engine, ForeignKey, Text, create_engine, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
@@ -66,3 +67,14 @@ class NoteRevision(Base):
     note_id: Mapped[int] = mapped_column(ForeignKey("note.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     content: Mapped[str] = mapped_column(Text)
+
+
+class NoteEmbedding(Base):
+    """A note's embedding, for semantic search. Stale when `model` or `content_hash` differ."""
+
+    __tablename__ = "note_embedding"
+
+    note_id: Mapped[int] = mapped_column(ForeignKey("note.id"), primary_key=True)
+    model: Mapped[str] = mapped_column(Text)
+    content_hash: Mapped[str] = mapped_column(Text)  # sha256 of the content that was embedded.
+    embedding: Mapped[list[float]] = mapped_column(VECTOR())
