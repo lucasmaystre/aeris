@@ -5,6 +5,7 @@ description = "aeris server: web UI and JSON API."
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.136.1",
+    "httpx>=0.28.1",
     "jinja2>=3.1.6",
     "markdown2[all]>=2.5.5",
     "markupsafe>=3.0.3",
