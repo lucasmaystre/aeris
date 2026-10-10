@@ -5,6 +5,7 @@ over a JSON API. Notes live in Neon Postgres.
 
 - Big picture: `docs/2026-10-09-design.md`.
 - Progress, decisions and findings: `docs/2026-10-09-tasks.md`.
+- Current work, the web UI revamp: `docs/2026-10-10-web-ui.md` and `docs/2026-10-10-web-ui-tasks.md`.
 
 ## How we work
 
