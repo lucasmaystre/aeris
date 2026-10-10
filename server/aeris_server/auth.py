@@ -7,12 +7,18 @@ from functools import cache
 from typing import Annotated, Literal
 
 from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 TOKENS_VAR = "AERIS_TOKENS"
 COOKIE_NAME = "aeris_token"
 MIN_SECRET_LENGTH = 32
 
 Scope = Literal["ro", "rw"]
+
+# Reads `Authorization: Bearer ...` and declares the scheme in the API docs. Without the header it
+# yields None rather than failing, so the cookie can be tried next.
+bearer = HTTPBearer(auto_error=False, description="A token's secret (see `AERIS_TOKENS`).")
+Bearer = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]
 
 
 @dataclass(frozen=True)
@@ -59,9 +65,9 @@ def authenticate(secret: str) -> Token | None:
     return match
 
 
-def require_read(request: Request) -> Token:
+def require_read(request: Request, credentials: Bearer) -> Token:
     """FastAPI dependency: any valid token, from the Bearer header or the cookie."""
-    secret = _bearer(request) or request.cookies.get(COOKIE_NAME)
+    secret = (credentials and credentials.credentials) or request.cookies.get(COOKIE_NAME)
     token = authenticate(secret) if secret else None
     if token is None:
         raise HTTPException(
@@ -77,10 +83,3 @@ def require_write(token: Annotated[Token, Depends(require_read)]) -> Token:
     if token.scope != "rw":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This token is read-only.")
     return token
-
-
-def _bearer(request: Request) -> str | None:
-    scheme, _, value = request.headers.get("authorization", "").partition(" ")
-    if scheme.lower() != "bearer":
-        return None
-    return value.strip() or None

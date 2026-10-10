@@ -64,7 +64,8 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["ago"] = ago
 templates.env.filters["time_tag"] = time_tag
 templates.env.filters["preview"] = preview
-router = APIRouter()
+# HTML for the browser: left out of the API docs.
+router = APIRouter(include_in_schema=False)
 
 
 class LoginRequired(Exception):
@@ -94,10 +95,10 @@ def _login_url(next_path: str) -> str:
     return "/login" if next_path == "/" else f"/login?{urlencode({'next': next_path})}"
 
 
-def web_read(request: Request) -> Token:
+def web_read(request: Request, credentials: auth.Bearer) -> Token:
     """Like `auth.require_read`, but sends unauthenticated browsers to the login page."""
     try:
-        return auth.require_read(request)
+        return auth.require_read(request, credentials)
     except HTTPException as error:
         raise LoginRequired() from error
 
