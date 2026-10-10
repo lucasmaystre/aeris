@@ -9,14 +9,14 @@
              autocomplete="off" aria-label="Search notes" class="input input-sm w-full">
     </div>
 
-    <div id="note-list-container" class="flex-1 overflow-y-auto"
+    <div id="note-list-container" class="flex-1 overflow-y-auto overflow-x-hidden"
          hx-get="/notes"
          hx-trigger="load, noteCreated from:body, noteUpdated from:body, noteDeleted from:body"
          hx-target="#note-list-container"
          hx-swap="innerHTML">
     </div>
     <!-- Stands in for the list while ranking, so list reloads can't replace the results. -->
-    <div id="ranked-notes" class="flex-1 overflow-y-auto" hidden></div>
+    <div id="ranked-notes" class="flex-1 overflow-y-auto overflow-x-hidden" hidden></div>
   </aside>
 
   <main id="main-panel" class="flex-1 overflow-y-auto">

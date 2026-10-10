@@ -55,6 +55,12 @@ def time_tag(moment: datetime) -> Markup:
     return Markup(f'<time datetime="{utc.isoformat()}">{utc:%Y-%m-%d %H:%M} UTC</time>')
 
 
+def relative_time(moment: datetime) -> Markup:
+    """A <time> saying e.g. "3 days ago"; app.js keeps it current while the page stays open."""
+    utc = moment.astimezone(UTC)
+    return Markup(f'<time datetime="{utc.isoformat()}" data-ago>{ago(moment)}</time>')
+
+
 def render_markdown(content: str) -> str:
     # Escape raw HTML: agents write notes too, possibly with text copied from the web.
     return markdown2.markdown(content, extras=_MARKDOWN_EXTRAS, safe_mode="escape")
@@ -63,6 +69,7 @@ def render_markdown(content: str) -> str:
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["ago"] = ago
 templates.env.filters["time_tag"] = time_tag
+templates.env.filters["relative_time"] = relative_time
 templates.env.filters["preview"] = preview
 # HTML for the browser: left out of the API docs.
 router = APIRouter(include_in_schema=False)
@@ -172,9 +179,9 @@ def note_page(
 
 @router.get("/notes", dependencies=READ)
 def note_list(request: Request, session: SessionDep) -> HTMLResponse:
-    return _partial(
-        request, "note_list.html", notes=notes.list_notes(session), tags=notes.list_tags(session)
-    )
+    """The sidebar: recently edited notes first."""
+    found = notes.list_notes(session, order="updated")
+    return _partial(request, "note_list.html", notes=found, tags=notes.list_tags(session))
 
 
 @router.get("/search", dependencies=READ)

@@ -3,7 +3,7 @@
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5 pb-4 border-b border-base-300">
     <div class="flex-1 min-w-0 text-sm opacity-60">
       #{{ note.id }} · created {{ note.created_at | time_tag }}
-      {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | ago }}{% endif %}
+      {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | relative_time }}{% endif %}
     </div>
     <div class="join">
       <button class="join-item btn btn-sm {% if mode == 'rendered' %}btn-neutral{% endif %}"

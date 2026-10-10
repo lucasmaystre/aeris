@@ -1,0 +1,25 @@
+{# A sidebar row, always the same height: title; ID and last update; a two-line preview.
+   Context: `note` (a note or a search hit), `text` (its preview or snippet), optional `score`,
+   and `searchable` (carry the data app.js filters on, and a slot for its snippet). #}
+<li data-id="{{ note.id }}"{% if searchable %} data-text="{{ note.content }}" data-tags="{{ note.tags | join(' ') }}"{% endif %}>
+  <a class="block px-4 py-3 border-l-2 border-transparent cursor-pointer hover:bg-base-200 aria-[current=page]:bg-secondary aria-[current=page]:border-primary"
+     href="/n/{{ note.id }}"
+     hx-get="/notes/{{ note.id }}"
+     hx-push-url="/n/{{ note.id }}"
+     hx-target="#main-panel"
+     hx-swap="innerHTML">
+    <div class="flex items-baseline gap-2">
+      <span class="flex-1 min-w-0 truncate font-semibold">{{ note.title or "(untitled)" }}</span>
+      {% if score is not none %}
+      <span class="flex-none text-xs opacity-60 tabular-nums" title="Cosine similarity">{{ "%.2f" | format(score) }}</span>
+      {% endif %}
+    </div>
+    <div class="mt-0.5 truncate text-xs opacity-60">
+      <span class="font-mono">#{{ note.id }}</span> · {{ note.updated_at | relative_time }}
+    </div>
+    <p class="preview mt-1 h-8 text-xs leading-4 opacity-80 line-clamp-2 [overflow-wrap:anywhere]">{{ text }}</p>
+    {% if searchable %}
+    <p class="snippet mt-1 h-8 text-xs leading-4 opacity-80 line-clamp-2 [overflow-wrap:anywhere]" hidden></p>
+    {% endif %}
+  </a>
+</li>

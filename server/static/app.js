@@ -4,7 +4,7 @@
 // full date and timezone as a tooltip. The server renders them in UTC as a fallback.
 function localizeTimes(root) {
   const pad = (number) => String(number).padStart(2, "0");
-  for (const element of root.querySelectorAll("time[datetime]")) {
+  for (const element of root.querySelectorAll("time[datetime]:not([data-ago])")) {
     const moment = new Date(element.getAttribute("datetime"));
     if (Number.isNaN(moment.getTime())) continue;
     element.textContent =
@@ -19,6 +19,42 @@ function localizeTimes(root) {
 
 // Runs on the initial page and on every fragment htmx swaps in.
 htmx.onLoad(localizeTimes);
+
+// Relative times, e.g. "3 minutes ago": the same wording as `ago` in server/aeris_server/web.py
+// (change them together), refreshed every minute while the page stays open.
+const AGO_UNITS = [
+  ["year", 365 * 86400],
+  ["month", 30 * 86400],
+  ["day", 86400],
+  ["hour", 3600],
+  ["minute", 60],
+];
+
+function ago(moment) {
+  const seconds = (Date.now() - moment.getTime()) / 1000;
+  for (const [unit, size] of AGO_UNITS) {
+    if (seconds >= size) {
+      const count = Math.floor(seconds / size);
+      return `${count} ${unit}${count === 1 ? "" : "s"} ago`;
+    }
+  }
+  return "just now";
+}
+
+function refreshAgo(root) {
+  for (const element of root.querySelectorAll("time[data-ago]")) {
+    const moment = new Date(element.getAttribute("datetime"));
+    if (Number.isNaN(moment.getTime())) continue;
+    element.textContent = ago(moment);
+    element.title = moment.toLocaleString(undefined, {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+      hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+    });
+  }
+}
+
+htmx.onLoad(refreshAgo);
+setInterval(() => refreshAgo(document), 60_000);
 
 // Search: filter the sidebar as you type, ignoring case, accents and whitespace runs. The steps
 // mirror `normalize` in server/aeris_server/parsing.py: change them together. Words starting
@@ -65,7 +101,7 @@ function snippetNodes(entry, start, length) {
   if (lastSpace >= 0) high = end + lastSpace;
   const flat = (part) => part.replace(/\s+/g, " ");
   const mark = document.createElement("mark");
-  mark.className = "bg-secondary text-secondary-content rounded-sm";
+  mark.className = "bg-primary/20 text-base-content rounded-sm";
   mark.textContent = flat(text.slice(from, end)).trim();
   return [
     (low > 0 ? "…" : "") + flat(text.slice(low, from)).trimStart(),
@@ -200,12 +236,14 @@ document.addEventListener("keydown", (event) => {
 // Re-apply the current search whenever the sidebar is (re)loaded.
 htmx.onLoad(applySearch);
 
-// Highlight the note whose page we're on (`/n/42`) in the sidebar.
+// Mark the note whose page we're on (`/n/42`) in the sidebar, for styling and screen readers.
 function markCurrent() {
   const match = location.pathname.match(/^\/n\/(\d+)$/);
   const current = match ? match[1] : null;
   for (const item of document.querySelectorAll("#sidebar li[data-id]")) {
-    item.querySelector("a").classList.toggle("menu-active", item.dataset.id === current);
+    const link = item.querySelector("a");
+    if (item.dataset.id === current) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   }
 }
 

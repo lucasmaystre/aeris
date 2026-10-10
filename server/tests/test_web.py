@@ -184,14 +184,25 @@ def test_note_list(browser: TestClient) -> None:
     html = browser.get("/notes").text
     assert html.index(f'/notes/{second.id}"') < html.index(f'/notes/{first.id}"')
     assert "Deleted note" not in html
-    assert "just now" in html
+    # Rows: title, ID and a live relative time, a preview; no tag badges.
+    assert f'<span class="font-mono">#{first.id}</span>' in html
+    assert "data-ago>just now</time>" in html
+
+
+def test_note_list_sorts_by_last_update(browser: TestClient) -> None:
+    older = _create("Older note")
+    _create("Newer note")
+    with db.session() as session:
+        notes.update_note(session, older.id, "Older note, edited")
+    html = browser.get("/notes").text
+    assert html.index("Older note, edited") < html.index("Newer note")
 
 
 def test_note_list_carries_text_for_search(browser: TestClient) -> None:
     _create('Quotes " and <tags> & ampersands')
     html = browser.get("/notes").text
     assert 'data-text="Quotes &#34; and &lt;tags&gt; &amp; ampersands"' in html
-    assert '<li class="no-matches menu-disabled" hidden>' in html
+    assert '<li class="no-matches px-4 py-3 text-sm opacity-60" hidden>' in html
 
 
 def test_tag_chips_and_data(browser: TestClient) -> None:

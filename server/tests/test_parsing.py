@@ -88,6 +88,9 @@ def test_extract_tags(content: str, expected: list[str]) -> None:
         ("Tags: #a, #b\n\nActual title", "Actual title"),
         ("Tags: #a", ""),
         ("#\n---\n* * *\n>\nReal", "Real"),
+        # Code fence markers are skipped: the title is the first line of code.
+        ("```bash\nuv run aeris-admin reindex\n```\nThen wait.", "uv run aeris-admin reindex"),
+        ("~~~\n~~~\nAfter an empty block", "After an empty block"),
         # Block markers.
         ("# Heading", "Heading"),
         ("### Deep heading ###", "Deep heading ###"),

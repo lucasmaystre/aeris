@@ -12,6 +12,7 @@ Decisions:
   personal tabs and accounts, and the repo is public.
 - Light only, no dark mode. A little color, not greyscale. daisyUI components first (doc §3).
 - Tag filter: our own small component, not a third-party library.
+- The sidebar lists notes by last update, and rows show no tag badges (C.1).
 - Theme: slate neutrals + indigo accent (`#4f46e5`). Font: Inter for text, Geist Mono for code and
   IDs (B.1a, picked from the style guide and a side-by-side gallery).
 - The style guide's template (`dev/templates/`) is a Tailwind source, so the production CSS also
@@ -55,6 +56,17 @@ From B.1 (2026-10-10):
 - daisyUI draws the focus ring in the text color (a black double ring); `app.css` points it at the
   accent.
 
+From C.1 (2026-10-10):
+
+- Rows: one partial (`note_row.html`) for the list and the ranking, a fixed shape (title; `#ID ·
+  relative time`; two preview lines), so every row is the same height. No tag badges: tags stay on
+  the note and in the tag filter.
+- The list shows and sorts by last update (a decision).
+- daisyUI's `list` wasn't used: its dividers are 5% black and inset, its rows rounded; Tailwind's
+  `divide-y` gives full-width slate lines.
+- Relative times are `<time data-ago>`, refreshed every minute by `app.js` (they used to freeze at
+  render time). Selection is `aria-current="page"`, styled with the accent tint and a left bar.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -72,11 +84,12 @@ From B.1 (2026-10-10):
 
 ## Phase C: Sidebar
 
-- [ ] C.1 Note rows: equal height, title / ID + relative time / preview, dividers, no horizontal
+- [x] C.1 Note rows: equal height, title / ID + relative time / preview, dividers, no horizontal
   scroll, light-grey selection (W3–W6, W10)
 - [ ] C.2 New notes appear in the list at once (W7: investigate first)
 - [ ] C.3 Search box with a visible border (W8)
 - [ ] C.4 Tag filter for ~100 tags: dropdown, type-to-filter, checkboxes (W9)
+- [ ] C.5 Search snippets as plain text, not raw Markdown (`# Title Tags: …`)
 
 ## Phase D: Note pane
 

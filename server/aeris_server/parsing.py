@@ -99,11 +99,12 @@ def _excerpt(content: str, start: int, end: int) -> str:
 def title(content: str) -> str:
     """Compute a note's title: its first line with text, as plain text, truncated at a word.
 
-    `Tags:` lines are skipped. Leading block markers (headings, quotes, list items) and inline
-    markdown (emphasis, code, links) are removed. Returns "" if no line has any text.
+    `Tags:` lines and code fence markers are skipped. Leading block markers (headings, quotes, list
+    items) and inline markdown (emphasis, code, links) are removed. Returns "" if no line has any
+    text.
     """
     for line in content.splitlines():
-        if _TAGS_LINE.match(line):
+        if _TAGS_LINE.match(line) or _CODE_FENCE.match(line):
             continue
         text = _clean_line(line)
         if text:
