@@ -60,6 +60,18 @@ Tags come from lines like `Tags: #project/aeris, #ideas` in a note. The editor i
   `show --json`, then `edit --stdin --expected-updated-at` that value: the edit fails instead of
   overwriting someone else's change.
 
+## Agent skill
+
+[`skill/SKILL.md`](https://github.com/lucasmaystre/aeris/blob/main/cli/skill/SKILL.md) teaches an
+agent to use this CLI well: which search to use, citing note IDs, `append` versus `edit`, tags.
+For Claude Code, put the `skill` folder in your skills directory, e.g. from a clone of the repo:
+
+```bash
+ln -s "$PWD/cli/skill" ~/.claude/skills/aeris
+```
+
+For other agents, paste its contents into `AGENTS.md` (without the frontmatter).
+
 ## Upgrading from 0.4
 
 0.5 talks to the aeris server instead of the database:
