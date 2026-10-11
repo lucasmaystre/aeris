@@ -113,6 +113,15 @@ From D.2 (2026-10-10):
 - Tags stay twice on a rendered note (badges above it, and its `Tags:` line as text): the user
   chose to keep it.
 
+From D.3 (2026-10-10):
+
+- The editor is one form: the same 57 px bar as the note view (title, the Markdown hint, Cancel,
+  Save), an optional warning strip, then a borderless textarea filling the rest. Its text column
+  matches the rendered note's exactly (x 344–1064 at 1280 px wide, measured); the right padding keeps
+  the field itself full width, so clicking anywhere below the bar edits.
+- Cancel on a new note re-requests the current page and swaps in its main panel (`htmx.ajax` with
+  `select`): the note at `/n/42`, or the empty view at `/`.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -142,7 +151,7 @@ From D.2 (2026-10-10):
 
 - [x] D.1 Full-width header bar, edge-to-edge border, fixed while the note scrolls (W12, W13)
 - [x] D.2 Content styling: softer prose, light code blocks (W11)
-- [ ] D.3 Editor fills the area below the bar (W14)
+- [x] D.3 Editor fills the area below the bar (W14)
 
 ## Backlog
 

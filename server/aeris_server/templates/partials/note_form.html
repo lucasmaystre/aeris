@@ -1,41 +1,47 @@
-<div class="p-6 max-w-3xl h-full overflow-y-auto flex flex-col">
+<form class="h-full flex flex-col"
+      {% if note_id %}hx-put="/notes/{{ note_id }}"{% else %}hx-post="/notes"{% endif %}
+      hx-target="#main-panel"
+      hx-swap="innerHTML">
 
-  <h2 class="text-sm font-semibold opacity-60 mb-3">
-    {% if note_id %}Edit note #{{ note_id }}{% else %}New note{% endif %}
-  </h2>
+  {# The same bar as the note view: full width, as tall as the sidebar's search row. #}
+  <header class="flex-none h-[57px] flex items-center gap-3 px-6 border-b border-base-300">
+    <div class="flex-1 min-w-0 truncate text-sm">
+      {% if note_id %}
+      <span class="font-semibold">Edit note <span class="font-mono">#{{ note_id }}</span></span>
+      {% else %}
+      <span class="font-semibold">New note</span>
+      {% endif %}
+      <span class="opacity-60"> · Markdown · tag with a line like <code class="font-mono">Tags: #ideas, #project/aeris</code></span>
+    </div>
+    {% if note_id %}
+    <button type="button"
+            class="btn btn-ghost btn-sm"
+            hx-get="/notes/{{ note_id }}"
+            hx-target="#main-panel"
+            hx-swap="innerHTML">
+      Cancel
+    </button>
+    {% else %}
+    <button type="button" class="btn btn-ghost btn-sm" data-cancel-new>Cancel</button>
+    {% endif %}
+    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+  </header>
 
   {% if error %}
-  <div role="alert" class="alert alert-soft {% if conflict %}alert-warning{% else %}alert-error{% endif %} mb-3 text-sm">
+  <div role="alert" class="flex-none alert alert-soft {% if conflict %}alert-warning{% else %}alert-error{% endif %} rounded-none border-x-0 border-t-0 px-6 text-sm">
     {{ error }}
   </div>
   {% endif %}
 
-  <form class="flex-1 min-h-0 flex flex-col gap-2"
-        {% if note_id %}hx-put="/notes/{{ note_id }}"{% else %}hx-post="/notes"{% endif %}
-        hx-target="#main-panel"
-        hx-swap="innerHTML">
-    {% if expected_updated_at %}
-    <input type="hidden" name="expected_updated_at" value="{{ expected_updated_at.isoformat() }}">
-    {% endif %}
-    <textarea name="content"
-              placeholder="Write your note here…"
-              autofocus
-              class="textarea w-full flex-1 min-h-64 font-mono text-sm leading-relaxed resize-none">{{ content }}</textarea>
-    <p class="text-xs opacity-60">
-      Markdown. Tag a note with a line like <code>Tags: #ideas, #project/aeris</code>.
-    </p>
-    <div class="flex gap-2">
-      <button type="submit" class="btn btn-primary btn-sm">Save</button>
-      {% if note_id %}
-      <button type="button"
-              class="btn btn-ghost btn-sm"
-              hx-get="/notes/{{ note_id }}"
-              hx-target="#main-panel"
-              hx-swap="innerHTML">
-        Cancel
-      </button>
-      {% endif %}
-    </div>
-  </form>
+  {% if expected_updated_at %}
+  <input type="hidden" name="expected_updated_at" value="{{ expected_updated_at.isoformat() }}">
+  {% endif %}
+  {# The whole area below the bar. The text column lines up with the rendered note's (1.5rem in,
+     45rem wide at most); the right padding keeps the field itself full width. #}
+  <textarea name="content"
+            placeholder="Write your note here…"
+            autofocus
+            aria-label="Note content"
+            class="flex-1 min-h-0 w-full resize-none bg-base-100 outline-none font-mono text-sm leading-relaxed py-6 pl-6 pr-[max(1.5rem,calc(100%-46.5rem))]">{{ content }}</textarea>
 
-</div>
+</form>

@@ -261,13 +261,18 @@ def test_note_detail_bar(browser: TestClient) -> None:
 
 def test_forms(browser: TestClient) -> None:
     new = browser.get("/notes/new").text
-    assert 'hx-post="/notes"' in new
+    assert new.startswith('<form class="h-full flex flex-col"\n      hx-post="/notes"')
     assert "expected_updated_at" not in new
+    # The bar, inside the form: Save submits it; Cancel on a new note is handled by app.js.
+    bar = new.split("</header>")[0]
+    assert '<button type="submit" class="btn btn-primary btn-sm">Save</button>' in bar
+    assert "data-cancel-new" in bar
     note = _create("Editable")
     edit = browser.get(f"/notes/{note.id}/edit").text
     assert f'hx-put="/notes/{note.id}"' in edit
     assert f'value="{note.updated_at.isoformat()}"' in edit
     assert ">Editable</textarea>" in edit
+    assert f'hx-get="/notes/{note.id}"' in edit.split("</header>")[0]  # Cancel.
     assert browser.get("/notes/999/edit").status_code == 404
 
 

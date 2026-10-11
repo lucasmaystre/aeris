@@ -65,7 +65,8 @@ def test_styleguide_renders_every_section(app: TestClient) -> None:
     assert 'id="note-list"' in page.text
     assert "Ranked by similarity · 6" in page.text
     assert "Running a Ray cluster on Kubernetes</h1>" in page.text
-    assert "Edit note #1" in page.text and "changed since you opened it" in page.text
+    assert 'Edit note <span class="font-mono">#1</span>' in page.text
+    assert "changed since you opened it" in page.text
     assert 'action="/login"' in page.text
     assert 'data-color="primary"' in page.text
 
