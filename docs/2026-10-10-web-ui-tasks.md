@@ -220,8 +220,10 @@ From G.5 (2026-10-11):
 - Tables: `render_markdown` wraps each in `.table-scroll`, which scrolls sideways like a code block.
   The wrapper takes the table's margins, and none after a heading, like the plugin: desktop tables
   are pixel-identical.
-- Seen in passing: markdown2 reads underscores inside a bare URL as emphasis
-  (`exported_filtered_pairs` loses its underscores, italicized), and bare URLs aren't links.
+- Seen in passing: markdown2 read underscores inside words as emphasis (a bare URL's
+  `exported_filtered_pairs` lost its underscores, italicized). Fixed after G.5 with its
+  `middle-word-em: False`: no emphasis inside words, with `_` or `*`; `_word_` still works. Of the
+  fixtures, only the new wide one renders differently. Bare URLs still aren't links.
 
 ## Phase A: Tooling
 

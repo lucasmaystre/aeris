@@ -31,7 +31,13 @@ Mode = Literal["rendered", "raw"]  # How a note is shown: Markdown rendered, or 
 
 logger = logging.getLogger(__name__)
 
-_MARKDOWN_EXTRAS = ["fenced-code-blocks", "tables", "strike"]
+# No emphasis inside words: `snake_case` and URLs keep their underscores (`_word_` still works).
+_MARKDOWN_EXTRAS: dict[str, Any] = {
+    "fenced-code-blocks": None,
+    "tables": None,
+    "strike": None,
+    "middle-word-em": False,
+}
 _AGO_UNITS = [
     ("year", 365 * 86400),
     ("month", 30 * 86400),
