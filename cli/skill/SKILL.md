@@ -1,6 +1,6 @@
 ---
 name: aeris
-description: Read and write the user's personal notes with the `aeris` CLI. Use when the user mentions their notes, asks what they wrote or know about something, or asks you to remember, record, jot down or update something.
+description: Search and read the user's personal notes with the `aeris` CLI (read-only). Use when the user mentions their notes, or asks what they wrote or know about something.
 ---
 
 # aeris: the user's notes
@@ -8,16 +8,19 @@ description: Read and write the user's personal notes with the `aeris` CLI. Use 
 `aeris` is a CLI for the user's personal notes, which live on a server. Notes are Markdown; the
 first line is the title (a leading `#` is optional). Every note has a numeric ID.
 
+Access is read-only: never run `add`, `edit` or `delete` (the server refuses them). If the user
+asks you to save something, draft the note (a title line, then the text) and suggest they add it
+themselves with `aeris add`.
+
 Always pass `--json`: output is then the server's JSON on stdout. Exit codes: 0 success, 1 error,
-2 usage error. On error, stdout is `{"error": "...", "status": 409}`; `status` (the HTTP status)
+2 usage error. On error, stdout is `{"error": "...", "status": 404}`; `status` (the HTTP status)
 is absent for errors such as a missing configuration or an unreachable server.
 
 ## Check the setup
 
 Run `aeris tags --json` first: exit code 0 means the CLI works (the list may be empty). If it
-fails with a configuration error, the CLI needs `AERIS_URL`
-and `AERIS_TOKEN` (or `url` and `token` in `~/.aeris.yaml`). Ask the user for them; never guess
-or search the machine for a token.
+fails with a configuration error, the CLI needs `AERIS_URL` and `AERIS_TOKEN` (or `url` and
+`token` in `~/.aeris.yaml`). Ask the user for them; never guess or search the machine for a token.
 
 ## Read
 
@@ -39,43 +42,11 @@ or search the machine for a token.
 3. Answer from the notes and cite them by ID ("note #27"). If the notes don't say, say so; don't
    fill gaps with guesses presented as the user's notes.
 
-## Write
-
-Pass text with `-m` or on stdin; never rely on an editor (there's no terminal).
-
-- **New topic:** `aeris add --json` with the content on stdin: a title line, the tags line right
-  under it, then the body:
-
-  ```bash
-  aeris add --json <<'EOF'
-  # Kubernetes node selectors
-  Tags: #infra/kubernetes
-
-  Pin the frontend to AVX2 nodes with `feature.node.kubernetes.io/cpu-cpuid.AVX2: "true"`.
-  EOF
-  ```
-
-- **Update a note** (to add information to it, or when asked to change or reorganize it):
-  1. `aeris show ID --json` and keep its `updated_at`.
-  2. `aeris edit ID --stdin --expected-updated-at UPDATED_AT --json` with the full new content
-     on stdin. Change only what you mean to: keep the rest of the note exactly as it was (to add
-     information, insert it where it fits, often at the end).
-  3. If it fails with `"status": 409`, the note changed meanwhile; the error's `current` is the
-     latest version. Merge your change into it and try again with `current.updated_at`, passed
-     as is. Never drop the other change.
-- **Delete** only when the user asks: `aeris delete ID --json`. Deleted notes disappear from
-  every command but are kept in the database, so the user can recover them.
-
-Write notes for the user to read later: clear, self-contained, no chat filler. Before adding a
-note, check with `search`/`ask` that one on the topic doesn't already exist; prefer updating it.
-
 ## Tags
 
-- Tags come only from a line like `Tags: #project/aeris, #ideas`, placed right under the title.
-  Inline `#words` elsewhere are not tags.
-- Lowercase; `/` makes a hierarchy (`--tag project` also matches `project/aeris`).
-- Reuse existing tags (`aeris tags --json` lists them with counts) rather than inventing
-  near-duplicates. Add tags sparingly: one to three per note.
+Tags come only from a line like `Tags: #project/aeris, #ideas` under a note's title. They're
+lowercase, and `/` makes a hierarchy: `--tag project` also matches `project/aeris`.
+`aeris tags --json` lists them with counts.
 
 ## JSON shapes
 
@@ -85,4 +56,3 @@ note, check with `search`/`ask` that one on the topic doesn't already exist; pre
 - `search`, `ask`: `{"hits": [{"id", "title", "tags", "created_at", "updated_at", "snippet",
   "score"}...]}`; `score` is null for `search`.
 - `tags`: `{"tags": [{"tag", "count"}...]}`.
-- `add`, `edit`: the saved note. `delete`: `{"id", "deleted": true}`.

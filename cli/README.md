@@ -62,8 +62,10 @@ Tags come from lines like `Tags: #project/aeris, #ideas` in a note. The editor i
 ## Agent skill
 
 [`skill/SKILL.md`](https://github.com/lucasmaystre/aeris/blob/main/cli/skill/SKILL.md) teaches an
-agent to use this CLI well: which search to use, citing note IDs, safe edits, tags.
-For Claude Code, put the `skill` folder in your skills directory, e.g. from a clone of the repo:
+agent to read your notes with this CLI: which search to use, fetching notes, citing note IDs. It's
+read-only: agents don't add, edit or delete notes. Give them a read-only token (`name:ro:secret`
+on the server), e.g. in `~/.aeris.yaml`, and keep your read-write one in another file that you
+name with `AERIS_CONFIG_PATH`. For Claude Code, put the `skill` folder in your skills directory, e.g. from a clone of the repo:
 
 ```bash
 ln -s "$PWD/cli/skill" ~/.claude/skills/aeris
