@@ -1,0 +1,38 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths: ["server/**"]
+  workflow_dispatch:
+
+# One deploy at a time; a newer push replaces a deploy still waiting to start.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      # Offline tests only: the database tests need a secret this workflow doesn't have.
+      - name: Run unit tests
+        run: uv run pytest -m "not db"
+
+      # Uploads `server/` (minus `.vercelignore`); Vercel builds it and waits until it's live.
+      - name: Deploy
+        working-directory: server
+        run: npx --yes vercel@63.1.0 deploy --prod --token "${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Smoke test
+        run: curl --fail --silent --show-error https://aeris-five-silk.vercel.app/healthz

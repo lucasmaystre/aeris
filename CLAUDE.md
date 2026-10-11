@@ -52,7 +52,7 @@ uv run dev/screenshots.py [LABEL]    # screenshot the running sandbox to dev/scr
 scripts/css.sh [--watch]             # rebuild server/static/app.css after template changes; commit it
 uv run aeris-admin migrate           # apply migrations to AERIS_DATABASE_URL
 uv run aeris-admin reindex           # embed new or stale notes (needs AERIS_OPENROUTER_API_KEY)
-cd server && vercel deploy --prod    # deploy (Vercel CLI; no Git integration)
+cd server && vercel deploy --prod    # manual deploy; CI deploys pushes to main that touch server/
 ```
 
 ## Secrets and databases

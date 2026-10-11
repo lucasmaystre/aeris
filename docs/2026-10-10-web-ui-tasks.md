@@ -184,6 +184,23 @@ From E.1 (2026-10-11):
 - [x] E.1 Web UI code review: one message view, shared bar and source-text utilities, `app.js`
   organized by topic, leftovers removed, style guide trimmed to what the app uses
 
+## Phase F: Deploys
+
+- [ ] F.1 Deploy from GitHub Actions on every push to `main` that touches `server/`, after the unit
+  tests (like PyPI publishing)
+
+## Phase G: Mobile
+
+Below 768 px, one pane at a time: the list on `/`, a note or the editor full-screen with a back
+button. Desktop stays pixel-identical.
+
+- [ ] G.1 Phone size (390×844) in the screenshot gallery; findings
+- [ ] G.2 One pane at a time: list or note full-screen, a back button, browser Back works
+- [ ] G.3 Bars that fit: a `+` icon for New note; shorter metadata and icon-only Edit/Delete
+- [ ] G.4 Touch details: 16 px fields (no iOS zoom), `dvh` heights, no `/` hint on touch, shorter
+  search placeholder, the login page
+- [ ] G.5 Check on a real phone (production), fix what turns up
+
 ## Backlog
 
 - Syntax highlighting in code blocks (` ```python `).
