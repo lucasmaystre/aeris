@@ -21,7 +21,9 @@ from sandbox import PORT
 
 BASE = f"http://localhost:{PORT}"
 OUT = Path(__file__).resolve().parent / "screenshots"
-SIZES = {1440: 900, 1024: 700}  # Width: height. A desktop window, and a narrow one.
+# Width: height. A desktop window, a narrow one, and a phone (an iPhone 13 mini).
+SIZES = {1440: 900, 1024: 700, 375: 812}
+PHONE_WIDTH = 768  # Narrower sizes emulate a phone: touch, no hover, mobile viewport.
 
 
 def settle(page: Page) -> None:
@@ -175,9 +177,14 @@ def main() -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         for width, height in SIZES.items():
-            logged_in = browser.new_context(viewport={"width": width, "height": height})
+            phone = width < PHONE_WIDTH
+            logged_in, logged_out = (
+                browser.new_context(
+                    viewport={"width": width, "height": height}, is_mobile=phone, has_touch=phone
+                )
+                for _ in range(2)
+            )
             logged_in.new_page().goto(f"{BASE}/dev/login")
-            logged_out = browser.new_context(viewport={"width": width, "height": height})
             for name, show in VIEWS.items():
                 page = (logged_out if name == "login" else logged_in).new_page()
                 show(page)

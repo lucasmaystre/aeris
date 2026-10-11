@@ -154,6 +154,20 @@ From F.1 (2026-10-11):
 - First run (manual): green in 70 s, a new production deployment on Vercel. Pushes that don't touch
   `server/` (docs, the CLI) don't deploy; `gh workflow run deploy.yml` deploys by hand.
 
+From G.1 (2026-10-11):
+
+- The gallery has a third size, 375×812 (an iPhone 13 mini, the user's phone). Below 768 px wide
+  it emulates a phone (touch, no hover, mobile viewport), so `(hover: none)` and
+  `(pointer: coarse)` queries match. 36 screenshots, about 30 s.
+- At 375 px: the sidebar keeps its 320 px and leaves the main panel 55 px. Notes wrap one word per
+  line, the editor one or two characters; the note bar's 313 px of controls are clipped; the empty
+  view's message wraps to five lines. The page itself doesn't scroll sideways.
+- The search box, the editor and the login field are 14 px: iOS Safari zooms in on focusing fields
+  under 16 px (G.4).
+- The top bar fits as is (New note and Log out), and so does the login page.
+- Chromium's emulation can't show iOS Safari's toolbar (the `h-screen` vs `dvh` question): check
+  on a real phone (G.4, G.5).
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -202,7 +216,7 @@ From F.1 (2026-10-11):
 Below 768 px, one pane at a time: the list on `/`, a note or the editor full-screen with a back
 button. Desktop stays pixel-identical.
 
-- [ ] G.1 Phone size (390×844) in the screenshot gallery; findings
+- [x] G.1 Phone size (375×812) in the screenshot gallery; findings
 - [ ] G.2 One pane at a time: list or note full-screen, a back button, browser Back works
 - [ ] G.3 Bars that fit: a `+` icon for New note; shorter metadata and icon-only Edit/Delete
 - [ ] G.4 Touch details: 16 px fields (no iOS zoom), `dvh` heights, no `/` hint on touch, shorter
