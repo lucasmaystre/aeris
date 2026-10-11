@@ -26,6 +26,7 @@ def _create(content: str) -> int:
         "/api/notes/1",
         "/api/search?q=x",
         "/api/tags",
+        "/api/whoami",
         "/api/export",
     ],
 )
@@ -89,6 +90,13 @@ def test_tags(client: TestClient) -> None:
     assert client.get("/api/tags").json() == {
         "tags": [{"tag": "a", "count": 2}, {"tag": "b", "count": 1}]
     }
+
+
+def test_whoami(api_tokens: dict[str, str]) -> None:
+    for scope, name in [("ro", "reader"), ("rw", "me")]:
+        headers = {"Authorization": f"Bearer {api_tokens[scope]}"}
+        response = TestClient(app, headers=headers).get("/api/whoami")
+        assert response.json() == {"name": name, "scope": scope}
 
 
 def test_export(client: TestClient) -> None:

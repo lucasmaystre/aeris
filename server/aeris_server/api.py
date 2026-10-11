@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from aeris_server import notes
-from aeris_server.auth import require_read, require_write
+from aeris_server.auth import Scope, Token, require_read, require_write
 from aeris_server.db import get_session
 from aeris_server.embeddings import EmbeddingError
 from aeris_server.notes import NoteData, Order, SearchHit, TagCount
@@ -33,6 +33,11 @@ class SearchResults(BaseModel):
 
 class TagList(BaseModel):
     tags: list[TagCount]
+
+
+class WhoAmI(BaseModel):
+    name: str
+    scope: Scope
 
 
 class NewNote(BaseModel):
@@ -109,6 +114,12 @@ def search(
 @router.get("/tags")
 def list_tags(session: SessionDep) -> TagList:
     return TagList(tags=notes.list_tags(session))
+
+
+@router.get("/whoami")
+def whoami(token: Annotated[Token, Depends(require_read)]) -> WhoAmI:
+    """The token making this request: its name and scope (`ro` or `rw`), never its secret."""
+    return WhoAmI(name=token.name, scope=token.scope)
 
 
 @router.get("/export")
