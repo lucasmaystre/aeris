@@ -119,8 +119,10 @@ From D.3 (2026-10-10):
   Save), an optional warning strip, then a borderless textarea filling the rest. Its text column
   matches the rendered note's exactly (x 344–1064 at 1280 px wide, measured); the right padding keeps
   the field itself full width, so clicking anywhere below the bar edits.
-- Cancel on a new note re-requests the current page and swaps in its main panel (`htmx.ajax` with
-  `select`): the note at `/n/42`, or the empty view at `/`.
+- Cancel on a new note re-requests the current page and swaps in its main panel: the note at
+  `/n/42`, or the empty view at `/`. First done in `app.js` (`htmx.ajax` with `select`); the user
+  then saw it do nothing, most likely a cached `app.js` without the handler. Now pure htmx
+  (`hx-get=""` requests the current URL, `hx-select="#main-panel > *"`), like the editing Cancel.
 
 From D.4 and D.5 (2026-10-11):
 

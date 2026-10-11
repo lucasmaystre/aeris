@@ -242,17 +242,6 @@ document.addEventListener("keydown", (event) => {
 // Re-apply the current search whenever the sidebar is (re)loaded.
 htmx.onLoad(applySearch);
 
-// Cancel on a new note: show again what the main panel shows for this page, the note at `/n/42`
-// or the empty view at `/`.
-document.addEventListener("click", (event) => {
-  if (!event.target.closest("[data-cancel-new]")) return;
-  htmx.ajax("GET", location.pathname, {
-    target: "#main-panel",
-    select: "#main-panel > *",
-    swap: "innerHTML",
-  });
-});
-
 // After creating a note, show the whole list so the new note appears (and is selected): clear the
 // search box and close any ranking. The server's `HX-Trigger: noteCreated` also reloads the list.
 document.addEventListener("noteCreated", () => {

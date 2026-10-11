@@ -21,7 +21,15 @@
       Cancel
     </button>
     {% else %}
-    <button type="button" class="btn btn-ghost btn-sm" data-cancel-new>Cancel</button>
+    {# Re-request this page (`hx-get=""`) and show its main panel again: the note at `/n/42`, or
+       the empty view at `/`. #}
+    <button type="button"
+            class="btn btn-ghost btn-sm"
+            hx-get=""
+            hx-select="#main-panel > *"
+            hx-target="#main-panel">
+      Cancel
+    </button>
     {% endif %}
     <button type="submit" class="btn btn-primary btn-sm">Save</button>
   </header>

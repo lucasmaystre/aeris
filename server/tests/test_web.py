@@ -267,10 +267,10 @@ def test_forms(browser: TestClient) -> None:
     new = browser.get("/notes/new").text
     assert new.startswith('<form class="h-full flex flex-col"\n      hx-post="/notes"')
     assert "expected_updated_at" not in new
-    # The bar, inside the form: Save submits it; Cancel on a new note is handled by app.js.
+    # The bar, inside the form: Save submits it; Cancel on a new note re-requests the page.
     bar = new.split("</header>")[0]
     assert '<button type="submit" class="btn btn-primary btn-sm">Save</button>' in bar
-    assert "data-cancel-new" in bar
+    assert 'hx-get=""\n            hx-select="#main-panel > *"' in bar
     note = _create("Editable")
     edit = browser.get(f"/notes/{note.id}/edit").text
     assert f'hx-put="/notes/{note.id}"' in edit
