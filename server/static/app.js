@@ -272,6 +272,12 @@ document.addEventListener("noteCreated", clearSearch);
 
 document.addEventListener("htmx:pushedIntoHistory", markCurrent);
 
+// htmx's history snapshot is the page's HTML, which has no typed values: put the search box's in.
+document.addEventListener("htmx:beforeHistorySave", () => {
+  const input = document.getElementById("search");
+  if (input) input.setAttribute("value", input.value);
+});
+
 // Back and forward restore an earlier page: bring its filter and highlight up to date.
 document.addEventListener("htmx:historyRestore", () => {
   if (!document.getElementById("search")?.value.trim()) showRanking(false);

@@ -257,6 +257,8 @@ def test_note_detail_bar(browser: TestClient) -> None:
     assert '<div class="note-body flex-1 overflow-y-auto">' in html.split("</header>")[1]
     assert f'<span class="font-mono">#{note.id}</span>' in bar
     assert "Rendered" in bar and "Edit" in bar and "Delete" in bar
+    # Phones only (`md:hidden`): back to the list, which the note covers.
+    assert 'aria-label="Back to the list"' in bar and 'hx-push-url="/"' in bar
     assert 'data-tag="work"' not in bar
     assert 'data-tag="work"' in html.split("</header>")[1]
     # Raw mode: the text alone, like the editor; no tag badges (the `Tags:` line is in the text).

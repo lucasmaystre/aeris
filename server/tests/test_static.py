@@ -29,6 +29,7 @@ def test_built_css_has_theme_and_template_classes() -> None:
         "font-family:Inter",
         "--tw-prose-pre-bg:var(--color-base-200)",  # Light code blocks in notes.
         ".btn-primary",
+        ":not(:has(.pane-bar)){display:none}",  # Phones: one pane at a time.
     ]
     for needle in needles:
         assert needle in css

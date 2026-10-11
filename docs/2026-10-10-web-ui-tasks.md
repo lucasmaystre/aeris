@@ -168,6 +168,23 @@ From G.1 (2026-10-11):
 - Chromium's emulation can't show iOS Safari's toolbar (the `h-screen` vs `dvh` question): check
   on a real phone (G.4, G.5).
 
+From G.2 (2026-10-11):
+
+- Below `md` (768 px) the sidebar is full width and the main panel lies over it (`absolute
+  inset-0`), shown only when it holds a view with a `pane-bar` (a note, the editor): Tailwind's
+  `max-md:not-has-[.pane-bar]:hidden`, no JS. htmx swaps, history restores and direct loads all
+  follow from the DOM.
+- The note bar has a back chevron on phones: it swaps in `/`'s main panel (the empty message, so
+  the list shows) and pushes `/`. The editor needs none: Cancel goes back to the note, or to the
+  list for a new note.
+- Covering the list rather than hiding it keeps its scroll and search when going back with the
+  chevron. The browser's Back restores htmx's snapshot instead: the page's HTML, which lost the
+  search box's typed value (on desktop too). `app.js` now writes it into the HTML before each
+  snapshot, so Back keeps the filter or the ranking; the list's scroll still resets.
+- On phones the deleted and not-found messages don't show (the list does): accepted.
+- Desktop unchanged: 20 of 24 desktop shots pixel-identical to G.1's; the others differ only in
+  relative times and antialiasing (21 pixels, intensity 2).
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -217,7 +234,7 @@ Below 768 px, one pane at a time: the list on `/`, a note or the editor full-scr
 button. Desktop stays pixel-identical.
 
 - [x] G.1 Phone size (375×812) in the screenshot gallery; findings
-- [ ] G.2 One pane at a time: list or note full-screen, a back button, browser Back works
+- [x] G.2 One pane at a time: list or note full-screen, a back button, browser Back works
 - [ ] G.3 Bars that fit: a `+` icon for New note; shorter metadata and icon-only Edit/Delete
 - [ ] G.4 Touch details: 16 px fields (no iOS zoom), `dvh` heights, no `/` hint on touch, shorter
   search placeholder, the login page

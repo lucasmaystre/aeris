@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex flex-1 overflow-hidden">
+{# Phones (below `md`, 768px) show one pane at a time: the list fills the screen, and a note or the
+   editor (any view with a `pane-bar`) lies over it, so the list keeps its scroll and search
+   underneath. Messages (no note open, deleted, not found) leave the list showing. #}
+<div class="relative flex flex-1 overflow-hidden">
 
-  <aside id="sidebar" class="w-80 flex-none flex flex-col overflow-hidden border-r border-base-300">
+  <aside id="sidebar" class="w-80 max-md:w-full flex-none flex flex-col overflow-hidden border-r border-base-300 max-md:border-r-0">
     <div class="flex-none p-3 border-b border-base-300">
       <label class="input input-sm w-full">
         <input id="search" type="search" placeholder="Filter, or Enter to rank by similarity"
@@ -24,7 +27,7 @@
 
   {# Doesn't scroll itself: each view inside manages its own space (the note view scrolls its body
      under a fixed bar). #}
-  <main id="main-panel" class="flex-1 min-w-0 overflow-hidden">
+  <main id="main-panel" class="flex-1 min-w-0 overflow-hidden max-md:absolute max-md:inset-0 max-md:bg-base-100 max-md:not-has-[.pane-bar]:hidden">
     {% if note %}
     {% include "partials/note_detail.html" %}
     {% elif missing %}

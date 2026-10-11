@@ -2,6 +2,16 @@
 
   {# Outside the scrolling body, so it never moves. #}
   <header class="pane-bar">
+    {# Phones only: back to the list, which this view covers (see index.html). #}
+    <button class="btn btn-ghost btn-sm btn-square -ml-2 md:hidden"
+            aria-label="Back to the list"
+            hx-get="/"
+            hx-select="#main-panel > *"
+            hx-target="#main-panel"
+            hx-push-url="/">
+      <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
     <div class="flex-1 min-w-0 truncate text-sm opacity-60">
       <span class="font-mono">#{{ note.id }}</span> · created {{ note.created_at | time_tag }}
       {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | relative_time }}{% endif %}
