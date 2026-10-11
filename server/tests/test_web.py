@@ -246,6 +246,19 @@ def test_note_detail(browser: TestClient) -> None:
     assert browser.get("/notes/999").status_code == 404
 
 
+def test_note_detail_bar(browser: TestClient) -> None:
+    note = _create("# Heading\nTags: #work\n\nBody")
+    html = browser.get(f"/notes/{note.id}").text
+    # The bar: ID, dates and actions, outside the scrolling body; tags come after it, in the body.
+    bar = html.split("</header>")[0]
+    assert '<header class="flex-none' in bar
+    assert '<div class="note-body flex-1 overflow-y-auto">' in html.split("</header>")[1]
+    assert f'<span class="font-mono">#{note.id}</span>' in bar
+    assert "Rendered" in bar and "Edit" in bar and "Delete" in bar
+    assert 'data-tag="work"' not in bar
+    assert 'data-tag="work"' in html.split("</header>")[1]
+
+
 def test_forms(browser: TestClient) -> None:
     new = browser.get("/notes/new").text
     assert 'hx-post="/notes"' in new

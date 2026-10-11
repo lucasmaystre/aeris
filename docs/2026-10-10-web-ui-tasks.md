@@ -93,6 +93,18 @@ From C.4 (2026-10-10):
 - The gallery caught the dropdown mid-animation (Playwright acts faster than its 200 ms opening):
   `settle` now also waits for running CSS animations; kept.
 
+From D.1 (2026-10-10):
+
+- First version: the bar was `sticky` inside the scrolling main panel. In review, the scrollbar ran
+  alongside the bar and macOS's elastic overscroll dragged it ("jiggle"). Now the main panel doesn't
+  scroll: the note view is a fixed bar plus its own scrolling body (`.note-body`), and the editor
+  scrolls itself if needed.
+- The sidebar's line sits under the search row (it was the list's top border, so it scrolled away).
+  Both lines are 57 px from the top bar, on the same pixel row (measured in the browser).
+- Tags moved from the bar to the top of the content. The rendered note also shows its `Tags:` line
+  as text, so tags appear twice: for D.2.
+- New gallery view `note-scrolled`: the long note scrolled by 900 px.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -120,7 +132,7 @@ From C.4 (2026-10-10):
 
 ## Phase D: Note pane
 
-- [ ] D.1 Full-width header bar, edge-to-edge border, fixed while the note scrolls (W12, W13)
+- [x] D.1 Full-width header bar, edge-to-edge border, fixed while the note scrolls (W12, W13)
 - [ ] D.2 Content styling: softer prose, light code blocks (W11)
 - [ ] D.3 Editor fills the area below the bar (W14)
 

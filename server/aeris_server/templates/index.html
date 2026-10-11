@@ -4,7 +4,7 @@
 <div class="flex flex-1 overflow-hidden">
 
   <aside id="sidebar" class="w-80 flex-none flex flex-col overflow-hidden border-r border-base-300">
-    <div class="flex-none p-3">
+    <div class="flex-none p-3 border-b border-base-300">
       <label class="input input-sm w-full">
         <input id="search" type="search" placeholder="Filter, or Enter to rank by similarity"
                autocomplete="off" aria-label="Search notes" class="peer grow">
@@ -23,7 +23,9 @@
     <div id="ranked-notes" class="flex-1 overflow-y-auto overflow-x-hidden" hidden></div>
   </aside>
 
-  <main id="main-panel" class="flex-1 overflow-y-auto">
+  {# Doesn't scroll itself: each view inside manages its own space (the note view scrolls its body
+     under a fixed bar). #}
+  <main id="main-panel" class="flex-1 min-w-0 overflow-hidden">
     {% if note %}
     {% include "partials/note_detail.html" %}
     {% elif missing %}

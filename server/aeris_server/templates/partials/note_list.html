@@ -1,4 +1,4 @@
-<ul id="note-list" class="divide-y divide-base-300 border-y border-base-300">
+<ul id="note-list" class="divide-y divide-base-300 border-b border-base-300">
   {% for note in notes %}
   {% with text = note.content | preview, score = none, searchable = true %}{% include "partials/note_row.html" %}{% endwith %}
   {% else %}

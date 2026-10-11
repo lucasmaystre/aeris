@@ -1,8 +1,10 @@
-<article class="p-6 max-w-3xl">
+<article class="h-full flex flex-col">
 
-  <div class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5 pb-4 border-b border-base-300">
-    <div class="flex-1 min-w-0 text-sm opacity-60">
-      #{{ note.id }} · created {{ note.created_at | time_tag }}
+  {# Full width, outside the scrolling body, so it never moves. As tall as the sidebar's search
+     row, so their bottom borders make one line. #}
+  <header class="flex-none h-[57px] flex items-center gap-3 px-6 border-b border-base-300">
+    <div class="flex-1 min-w-0 truncate text-sm opacity-60">
+      <span class="font-mono">#{{ note.id }}</span> · created {{ note.created_at | time_tag }}
       {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | relative_time }}{% endif %}
     </div>
     <div class="join">
@@ -32,19 +34,26 @@
             hx-swap="innerHTML">
       Delete
     </button>
-    {% if note.tags %}
-    <div class="w-full flex flex-wrap gap-1">
-      {% for tag in note.tags %}<button type="button" class="badge badge-sm badge-secondary cursor-pointer" data-tag="{{ tag }}" title="Filter the list by #{{ tag }}">#{{ tag }}</button>{% endfor %}
-    </div>
-    {% endif %}
-  </div>
+  </header>
 
-  {% if mode == "raw" %}
-  <pre class="font-mono text-sm whitespace-pre-wrap break-words leading-relaxed bg-base-200 rounded-box p-4">{{ note.content }}</pre>
-  {% else %}
-  <div class="prose max-w-none">
-    {{ rendered_html | safe }}
+  <div class="note-body flex-1 overflow-y-auto">
+    <div class="p-6 max-w-3xl">
+
+      {% if note.tags %}
+      <div class="flex flex-wrap gap-1 mb-4">
+        {% for tag in note.tags %}<button type="button" class="badge badge-sm badge-secondary cursor-pointer" data-tag="{{ tag }}" title="Filter the list by #{{ tag }}">#{{ tag }}</button>{% endfor %}
+      </div>
+      {% endif %}
+
+      {% if mode == "raw" %}
+      <pre class="font-mono text-sm whitespace-pre-wrap break-words leading-relaxed bg-base-200 rounded-box p-4">{{ note.content }}</pre>
+      {% else %}
+      <div class="prose max-w-none">
+        {{ rendered_html | safe }}
+      </div>
+      {% endif %}
+
+    </div>
   </div>
-  {% endif %}
 
 </article>
