@@ -194,6 +194,18 @@ From G.3 (2026-10-11):
 - Desktop unchanged: every desktop shot identical to G.2's but noise (6 pixels, intensity 1) and
   the style guide's relative times.
 
+From G.4 (2026-10-11):
+
+- Touch details use Tailwind's `pointer-coarse:` variant, not the width: iOS zooms in on fields
+  under 16 px on an iPad too. The search box, the editor, Raw mode (the editor's twin) and the
+  login field are 16 px on touch screens; the `/` hint is hidden there.
+- The body is `h-dvh` (was `h-screen`): iOS Safari's `100vh` is taller than the visible area while
+  its toolbar shows. Same on desktop; Chromium can't show the difference (G.5).
+- The search box has no autocorrect, auto-capitalization or spellcheck.
+- The placeholder fits at 16 px (258 of 325 px at 375 wide); kept. The iPhone's keyboard calls
+  Enter "search", so "Enter to rank" is slightly off there.
+- Desktop unchanged: same noise as before (a code block's antialiasing, relative times).
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -245,8 +257,8 @@ button. Desktop stays pixel-identical.
 - [x] G.1 Phone size (375×812) in the screenshot gallery; findings
 - [x] G.2 One pane at a time: list or note full-screen, a back button, browser Back works
 - [x] G.3 Bars that fit: the note bar's ID alone and icon-only Edit/Delete on phones
-- [ ] G.4 Touch details: 16 px fields (no iOS zoom), `dvh` heights, no `/` hint on touch, shorter
-  search placeholder, the login page
+- [x] G.4 Touch details: 16 px fields (no iOS zoom), `dvh` heights, no `/` hint on touch, no
+  autocorrect in search; the placeholder and the login page fit as they are
 - [ ] G.5 Check on a real phone (production), fix what turns up
 
 ## Backlog

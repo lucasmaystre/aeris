@@ -84,9 +84,10 @@
 }
 
 /* A note's source text, in Raw mode and the editor: the rendered note's column (it starts 1.5rem
-   in, at most 45rem of text: `p-6 max-w-3xl`), with right padding so the box stays full width. */
+   in, at most 45rem of text: `p-6 max-w-3xl`), with right padding so the box stays full width.
+   16px on touch screens, where iOS zooms in on smaller fields. */
 @utility note-source {
-  @apply font-mono text-sm leading-relaxed py-6 pl-6 pr-[max(1.5rem,calc(100%-46.5rem))];
+  @apply font-mono text-sm pointer-coarse:text-base leading-relaxed py-6 pl-6 pr-[max(1.5rem,calc(100%-46.5rem))];
 }
 
 /* Note content (`prose`): light code blocks instead of daisyUI's near-black ones, links in the
