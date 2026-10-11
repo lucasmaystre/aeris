@@ -257,6 +257,10 @@ def test_note_detail_bar(browser: TestClient) -> None:
     assert "Rendered" in bar and "Edit" in bar and "Delete" in bar
     assert 'data-tag="work"' not in bar
     assert 'data-tag="work"' in html.split("</header>")[1]
+    # Raw mode: the text alone, like the editor; no tag badges (the `Tags:` line is in the text).
+    raw = browser.get(f"/notes/{note.id}?mode=raw").text
+    assert "# Heading\nTags: #work\n\nBody</pre>" in raw
+    assert 'data-tag="work"' not in raw and "bg-base-200" not in raw
 
 
 def test_forms(browser: TestClient) -> None:

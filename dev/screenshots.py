@@ -77,6 +77,13 @@ def scrolled(path: str) -> Callable[[Page], None]:
     return view
 
 
+def raw(page: Page) -> None:
+    """The long note in Raw mode."""
+    page.goto(f"{BASE}/n/2")
+    settle(page)
+    page.get_by_role("tab", name="Raw").click()
+
+
 # Logged in, except `login`. Note IDs follow the fixtures' order: 1 is the weekly sync, 2 the long
 # Ray how-to.
 VIEWS: dict[str, Callable[[Page], None]] = {
@@ -84,6 +91,7 @@ VIEWS: dict[str, Callable[[Page], None]] = {
     "note": go("/n/1"),
     "note-long": go("/n/2"),
     "note-scrolled": scrolled("/n/2"),
+    "note-raw": raw,
     "edit": edit,
     "new": new,
     "filter": search("kubernetes"),

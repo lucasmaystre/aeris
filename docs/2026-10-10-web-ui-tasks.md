@@ -122,6 +122,15 @@ From D.3 (2026-10-10):
 - Cancel on a new note re-requests the current page and swaps in its main panel (`htmx.ajax` with
   `select`): the note at `/n/42`, or the empty view at `/`.
 
+From D.4 and D.5 (2026-10-11):
+
+- Raw mode is the editor's read-only twin: a boxless `<pre>` with the textarea's font, spacing and
+  column, and no tag badges. Measured identical (text at x 344–1064, top 130, Geist Mono 14/22.75).
+- The note bar is muted: daisyUI's `tabs-box` for Rendered/Raw (grey track, white active tab), ghost
+  Edit and Delete with small icons, Delete grey until hovered (then red). The editor's Save stays
+  the one indigo button.
+- New gallery view `note-raw`.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -152,6 +161,8 @@ From D.3 (2026-10-10):
 - [x] D.1 Full-width header bar, edge-to-edge border, fixed while the note scrolls (W12, W13)
 - [x] D.2 Content styling: softer prose, light code blocks (W11)
 - [x] D.3 Editor fills the area below the bar (W14)
+- [x] D.4 Raw view as the editor's read-only twin: no box, same font and column
+- [x] D.5 A more muted note bar: segmented Rendered/Raw, quiet Edit and Delete
 
 ## Backlog
 
