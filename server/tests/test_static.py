@@ -31,6 +31,7 @@ def test_built_css_has_theme_and_template_classes() -> None:
         ".btn-primary",
         ":not(:has(.pane-bar)){display:none}",  # Phones: one pane at a time.
         "@media (pointer:coarse){.note-source{font-size:var(--text-base)",  # No iOS zoom.
+        ".prose .table-scroll{margin-block:1.75em;overflow-x:auto}",  # Wide tables scroll alone.
     ]
     for needle in needles:
         assert needle in css

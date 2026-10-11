@@ -149,6 +149,14 @@ def test_render_markdown_escapes_html() -> None:
     assert "&lt;b&gt;code&lt;/b&gt;" in html
 
 
+def test_render_markdown_wraps_tables() -> None:
+    # Each table in a wrapper that scrolls sideways; a typed `<table>` stays escaped text.
+    html = render_markdown("| a | b |\n|---|---|\n| 1 | 2 |\n\n<table> and `<table>`")
+    assert html.startswith('<div class="table-scroll"><table>')
+    assert "</table></div>" in html
+    assert html.count("<table>") == 1 and html.count("&lt;table&gt;") == 2
+
+
 # Note pages.
 
 

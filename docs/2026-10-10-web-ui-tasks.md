@@ -206,6 +206,23 @@ From G.4 (2026-10-11):
   Enter "search", so "Enter to rank" is slightly off there.
 - Desktop unchanged: same noise as before (a code block's antialiasing, relative times).
 
+From G.5 (2026-10-11):
+
+- On the user's iPhone 13 mini, production looked good, with three issues: a large gap under the
+  bar (note 18), notes scrolling sideways (URLs, long strings in backticks) and wide tables cut off.
+  Reproduced with a new fixture, `13-wide-content.md` (gallery view `note-wide`).
+- The gap: note 18 starts with `##`, and D.2's heading margins override the typography plugin's
+  first-child reset (our rules are unlayered; the plugin's sit in a cascade layer, so ours win
+  whatever their specificity). `.prose > :first-child` has no top margin again. Only notes starting
+  with `##` or deeper change, on desktop too.
+- Sideways scrolling: words without break points widened the note body (514 px at 375). `.prose`
+  now has `overflow-wrap: break-word`.
+- Tables: `render_markdown` wraps each in `.table-scroll`, which scrolls sideways like a code block.
+  The wrapper takes the table's margins, and none after a heading, like the plugin: desktop tables
+  are pixel-identical.
+- Seen in passing: markdown2 reads underscores inside a bare URL as emphasis
+  (`exported_filtered_pairs` loses its underscores, italicized), and bare URLs aren't links.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -259,7 +276,8 @@ button. Desktop stays pixel-identical.
 - [x] G.3 Bars that fit: the note bar's ID alone and icon-only Edit/Delete on phones
 - [x] G.4 Touch details: 16 px fields (no iOS zoom), `dvh` heights, no `/` hint on touch, no
   autocorrect in search; the placeholder and the login page fit as they are
-- [ ] G.5 Check on a real phone (production), fix what turns up
+- [x] G.5 Check on a real phone (production), fix what turns up: the gap under the bar, long words,
+  wide tables
 
 ## Backlog
 

@@ -64,8 +64,12 @@ def relative_time(moment: datetime) -> Markup:
 
 
 def render_markdown(content: str) -> str:
-    # Escape raw HTML: agents write notes too, possibly with text copied from the web.
-    return markdown2.markdown(content, extras=_MARKDOWN_EXTRAS, safe_mode="escape")
+    # Escape raw HTML: agents write notes too, possibly with text copied from the web. So every
+    # `<table>` left is one markdown2 made, which gets a wrapper that scrolls sideways if needed.
+    html = markdown2.markdown(content, extras=_MARKDOWN_EXTRAS, safe_mode="escape")
+    return html.replace("<table>", '<div class="table-scroll"><table>').replace(
+        "</table>", "</table></div>"
+    )
 
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")

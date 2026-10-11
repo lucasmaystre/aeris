@@ -118,6 +118,26 @@
 .prose h3 {
   font-size: 1.125rem;
 }
+/* The first block sits right under the bar: the heading margins above override the plugin's own
+   first-child reset. */
+.prose > :first-child {
+  margin-top: 0;
+}
+/* Nothing widens the note: long words (URLs, paths in backticks) wrap, and wide tables scroll
+   sideways on their own, like code blocks (`render_markdown` wraps them in `.table-scroll`). */
+.prose {
+  overflow-wrap: break-word;
+}
+.prose .table-scroll {
+  overflow-x: auto;
+  margin-block: 1.75em; /* The table's own margins (2em at its 0.875em) move to the wrapper. */
+}
+.prose :is(h2, h3, h4, hr) + .table-scroll {
+  margin-top: 0; /* Like the plugin does for whatever follows a heading. */
+}
+.prose .table-scroll > table {
+  margin-block: 0;
+}
 
 /* Focus: no ring (daisyUI draws one), just a darker border. */
 .input:focus,
