@@ -13,10 +13,13 @@
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
     </button>
     <div class="flex-1 min-w-0 truncate text-sm opacity-60">
-      <span class="font-mono">#{{ note.id }}</span> · created {{ note.created_at | time_tag }}
-      {% if note.updated_at != note.created_at %} · edited {{ note.updated_at | relative_time }}{% endif %}
+      <span class="font-mono">#{{ note.id }}</span>
+      {#- Phones show the ID alone; the list row has the last update. #}
+      <span class="max-md:hidden"> · created {{ note.created_at | time_tag }}
+      {%- if note.updated_at != note.created_at %} · edited {{ note.updated_at | relative_time }}{% endif %}</span>
     </div>
-    {# Muted on purpose: a segmented toggle and quiet text buttons; Delete turns red on hover. #}
+    {# Muted on purpose: a segmented toggle and quiet text buttons (icons alone on phones); Delete
+       turns red on hover. #}
     <div role="tablist" class="tabs tabs-box tabs-sm" aria-label="View">
       <button role="tab" class="tab {% if mode == 'rendered' %}tab-active{% endif %}"
               aria-selected="{{ 'true' if mode == 'rendered' else 'false' }}"
@@ -31,20 +34,20 @@
         Raw
       </button>
     </div>
-    <button class="btn btn-ghost btn-sm gap-1.5"
+    <button class="btn btn-ghost btn-sm gap-1.5 max-md:btn-square"
             hx-get="/notes/{{ note.id }}/edit"
             hx-target="#main-panel">
       <svg class="size-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      Edit
+      <span class="max-md:sr-only">Edit</span>
     </button>
-    <button class="btn btn-ghost btn-sm gap-1.5 text-base-content/60 hover:text-error"
+    <button class="btn btn-ghost btn-sm gap-1.5 max-md:btn-square text-base-content/60 hover:text-error"
             hx-delete="/notes/{{ note.id }}"
             hx-confirm="Delete this note?"
             hx-target="#main-panel">
       <svg class="size-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
-      Delete
+      <span class="max-md:sr-only">Delete</span>
     </button>
   </header>
 

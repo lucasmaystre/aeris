@@ -185,6 +185,15 @@ From G.2 (2026-10-11):
 - Desktop unchanged: 20 of 24 desktop shots pixel-identical to G.1's; the others differ only in
   relative times and antialiasing (21 pixels, intensity 2).
 
+From G.3 (2026-10-11):
+
+- On phones the note bar shows the back button, the ID, Rendered/Raw and icon-only Edit and Delete
+  (`max-md:btn-square`, labels `max-md:sr-only`), measured without overflow at 375 px. The created
+  and edited times are hidden there; the list row has the last update.
+- The top bar and the editor bar already fit at 375 px: unchanged (the `+` icon idea dropped).
+- Desktop unchanged: every desktop shot identical to G.2's but noise (6 pixels, intensity 1) and
+  the style guide's relative times.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -235,7 +244,7 @@ button. Desktop stays pixel-identical.
 
 - [x] G.1 Phone size (375×812) in the screenshot gallery; findings
 - [x] G.2 One pane at a time: list or note full-screen, a back button, browser Back works
-- [ ] G.3 Bars that fit: a `+` icon for New note; shorter metadata and icon-only Edit/Delete
+- [x] G.3 Bars that fit: the note bar's ID alone and icon-only Edit/Delete on phones
 - [ ] G.4 Touch details: 16 px fields (no iOS zoom), `dvh` heights, no `/` hint on touch, shorter
   search placeholder, the login page
 - [ ] G.5 Check on a real phone (production), fix what turns up
