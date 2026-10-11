@@ -1,6 +1,6 @@
 # aeris — Web UI Task List
 
-Status: 2026-10-10. Implements `2026-10-10-web-ui.md`, in small tasks. Each task is planned,
+Status: 2026-10-11, phases A–G done. Implements `2026-10-10-web-ui.md`, in small tasks. Each task is planned,
 agreed, implemented, reviewed, then committed on its own (aesthetic tweaks: one task per polish
 pass).
 
