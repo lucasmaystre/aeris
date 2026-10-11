@@ -222,12 +222,28 @@ def test_search(server: FakeServer) -> None:
     assert result.exit_code == 0
     assert result.stdout.splitlines() == [
         "12  2026-10-05 13:30  Twelve",
-        "                      …about twelve…",
+        "    …about twelve…",
+        "",
         " 7  2026-10-01 10:00  Seven  #work",
-        "                      Body of seven.",
+        "    Body of seven.",
     ]
     assert server.params == {"q": "distributed systems", "limit": "30"}
     assert server.requests[-1].url.path == "/api/search"
+
+
+def test_search_wraps_text(server: FakeServer, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Wrapped to the terminal, indented; a URL and a hyphenated flag stay whole.
+    monkeypatch.setenv("COLUMNS", "30")
+    text = "run it with --launch-plan-name=grpo https://example.com/a/very/long/path/to/a/page then wait"
+    server.body = {"hits": [_hit(NOTE_7, text)]}
+    result = runner.invoke(app, ["search", "run"])
+    assert result.stdout.splitlines() == [
+        "7  2026-10-01 10:00  Seven  #work",
+        "    run it with",
+        "    --launch-plan-name=grpo",
+        "    https://example.com/a/very/long/path/to/a/page",
+        "    then wait",
+    ]
 
 
 def test_search_options(server: FakeServer) -> None:
@@ -272,9 +288,12 @@ def test_ask(server: FakeServer) -> None:
     result = runner.invoke(app, ["ask", "what", "about", "work?"])
     assert result.exit_code == 0
     assert result.stdout.splitlines() == [
-        "0.62   7  2026-10-01 10:00  Seven  #work",
-        "                            Body of seven.",
-        "0.40  12  2026-10-05 13:30  Twelve",
+        " 7  2026-10-01 10:00  Seven  #work",
+        "    Similarity: 0.62",
+        "    Body of seven.",
+        "",
+        "12  2026-10-05 13:30  Twelve",
+        "    Similarity: 0.40",
     ]
     assert server.params == {"q": "what about work?", "mode": "semantic", "limit": "10"}
     assert server.requests[-1].url.path == "/api/search"

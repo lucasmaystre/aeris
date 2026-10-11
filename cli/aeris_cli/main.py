@@ -4,9 +4,11 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -34,6 +36,7 @@ MessageOption = Annotated[
     typer.Option("--message", "-m", help="The text. Otherwise read from stdin or your editor."),
 ]
 CONFLICT = 409
+INDENT = "    "  # Under a search hit's summary line: its similarity and text.
 NO_TEXT = "No text to save: pass -m TEXT, pipe text in, or run in a terminal to use your editor."
 
 _DURATION = re.compile(r"\s*(\d+)\s*(m|mins?|minutes?|h|hours?|d|days?|w|weeks?)\s*", re.IGNORECASE)
@@ -104,11 +107,7 @@ def search(
         return
     if not data["hits"]:
         typer.echo(f"No notes match {phrase!r}.", err=True)
-    width = _id_width(data["hits"])
-    indent = " " * (width + 20)  # Lines the snippet up with the title.
-    for hit in data["hits"]:
-        typer.echo(_summary(hit, width, "created_at"))
-        typer.echo(indent + hit["snippet"])
+    _print_hits(data["hits"])
 
 
 @app.command()
@@ -129,12 +128,7 @@ def ask(
         return
     if not data["hits"]:
         typer.echo("No notes found.", err=True)
-    width = _id_width(data["hits"])
-    indent = " " * (width + 26)  # Lines the snippet up with the title.
-    for hit in data["hits"]:
-        typer.echo(f"{hit['score']:.2f}  {_summary(hit, width, 'created_at')}")
-        if hit["snippet"]:
-            typer.echo(indent + hit["snippet"])
+    _print_hits(data["hits"], similarity=True)
 
 
 @app.command()
@@ -367,6 +361,31 @@ def _fail(
 
 def _id_width(notes: list[dict[str, Any]]) -> int:
     return max((len(str(note["id"])) for note in notes), default=0)
+
+
+def _print_hits(hits: list[dict[str, Any]], *, similarity: bool = False) -> None:
+    """Each hit's summary line, then indented: its similarity (for `ask`) and its text, wrapped to
+    the terminal. A blank line between hits."""
+    width = _id_width(hits)
+    columns = shutil.get_terminal_size().columns
+    for index, hit in enumerate(hits):
+        if index:
+            typer.echo()
+        typer.echo(_summary(hit, width, "created_at"))
+        if similarity:
+            typer.echo(f"{INDENT}Similarity: {hit['score']:.2f}")
+        if hit["snippet"]:
+            # Long words (URLs, paths) and hyphenated flags stay whole, even past the edge.
+            typer.echo(
+                textwrap.fill(
+                    hit["snippet"],
+                    width=columns,
+                    initial_indent=INDENT,
+                    subsequent_indent=INDENT,
+                    break_long_words=False,
+                    break_on_hyphens=False,
+                )
+            )
 
 
 def _summary(note: dict[str, Any], width: int, timestamp_field: str) -> str:
