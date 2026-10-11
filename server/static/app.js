@@ -1,27 +1,10 @@
-// aeris: small browser-side behaviour, loaded on every page after htmx.
+// aeris: small browser-side behaviour, loaded on every page after htmx. Sections: times, search,
+// ranking, tags, the current note; all event handling is wired up at the end.
 
-// Show <time datetime="..."> elements in the viewer's timezone, e.g. "2026-10-09 19:59", with the
-// full date and timezone as a tooltip. The server renders them in UTC as a fallback.
-function localizeTimes(root) {
-  const pad = (number) => String(number).padStart(2, "0");
-  for (const element of root.querySelectorAll("time[datetime]:not([data-ago])")) {
-    const moment = new Date(element.getAttribute("datetime"));
-    if (Number.isNaN(moment.getTime())) continue;
-    element.textContent =
-      `${moment.getFullYear()}-${pad(moment.getMonth() + 1)}-${pad(moment.getDate())} ` +
-      `${pad(moment.getHours())}:${pad(moment.getMinutes())}`;
-    element.title = moment.toLocaleString(undefined, {
-      weekday: "long", year: "numeric", month: "long", day: "numeric",
-      hour: "2-digit", minute: "2-digit", timeZoneName: "short",
-    });
-  }
-}
+// --- Times -------------------------------------------------------------------------------------
+// The server renders <time datetime="..."> in UTC, or as "3 minutes ago" (`data-ago`); here they
+// show in the viewer's timezone, with the full date as a tooltip.
 
-// Runs on the initial page and on every fragment htmx swaps in.
-htmx.onLoad(localizeTimes);
-
-// Relative times, e.g. "3 minutes ago": the same wording as `ago` in server/aeris_server/web.py
-// (change them together), refreshed every minute while the page stays open.
 const AGO_UNITS = [
   ["year", 365 * 86400],
   ["month", 30 * 86400],
@@ -30,6 +13,14 @@ const AGO_UNITS = [
   ["minute", 60],
 ];
 
+function fullDate(moment) {
+  return moment.toLocaleString(undefined, {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+  });
+}
+
+// The same wording as `ago` in server/aeris_server/web.py: change them together.
 function ago(moment) {
   const seconds = (Date.now() - moment.getTime()) / 1000;
   for (const [unit, size] of AGO_UNITS) {
@@ -41,24 +32,24 @@ function ago(moment) {
   return "just now";
 }
 
-function refreshAgo(root) {
-  for (const element of root.querySelectorAll("time[data-ago]")) {
+// "2026-10-09 19:59" for absolute times; "3 minutes ago" (refreshed every minute) for relative ones.
+function showTimes(root) {
+  const pad = (number) => String(number).padStart(2, "0");
+  for (const element of root.querySelectorAll("time[datetime]")) {
     const moment = new Date(element.getAttribute("datetime"));
     if (Number.isNaN(moment.getTime())) continue;
-    element.textContent = ago(moment);
-    element.title = moment.toLocaleString(undefined, {
-      weekday: "long", year: "numeric", month: "long", day: "numeric",
-      hour: "2-digit", minute: "2-digit", timeZoneName: "short",
-    });
+    element.textContent = element.hasAttribute("data-ago")
+      ? ago(moment)
+      : `${moment.getFullYear()}-${pad(moment.getMonth() + 1)}-${pad(moment.getDate())} ` +
+        `${pad(moment.getHours())}:${pad(moment.getMinutes())}`;
+    element.title = fullDate(moment);
   }
 }
 
-htmx.onLoad(refreshAgo);
-setInterval(() => refreshAgo(document), 60_000);
-
-// Search: filter the sidebar as you type, ignoring case, accents and whitespace runs. The steps
-// mirror `normalize` in server/aeris_server/parsing.py: change them together. Words starting
-// with `#` filter by tag instead, like the server's tag filter: `#project` matches `project/aeris`.
+// --- Search ------------------------------------------------------------------------------------
+// Filter the sidebar as you type, ignoring case, accents and whitespace runs. The steps mirror
+// `normalize` in server/aeris_server/parsing.py: change them together. Words starting with `#`
+// filter by tag instead, like the server's tag filter: `#project` matches `project/aeris`.
 
 const SNIPPET_LENGTH = 120;
 const searchIndex = new WeakMap(); // Sidebar item -> its text, normalized, with origins.
@@ -110,14 +101,15 @@ function snippetNodes(entry, start, length) {
   ];
 }
 
+const isTagWord = (word) => word.startsWith("#") && word.length > 1;
+
 // Split the search box into tag filters (`#word`, lowercased) and the phrase: as typed (`text`)
 // and normalized (`phrase`).
 function parseQuery(value) {
   const words = value.trim().split(/\s+/).filter(Boolean);
-  const isTag = (word) => word.startsWith("#") && word.length > 1;
-  const text = words.filter((word) => !isTag(word)).join(" ");
+  const text = words.filter((word) => !isTagWord(word)).join(" ");
   return {
-    tags: words.filter(isTag).map((word) => word.slice(1).toLowerCase()),
+    tags: words.filter(isTagWord).map((word) => word.slice(1).toLowerCase()),
     text,
     phrase: normalize(text).trim(),
   };
@@ -156,8 +148,17 @@ function applySearch() {
   if (rankHint) rankHint.hidden = !query;
 }
 
-// Ranking: Enter ranks notes by semantic similarity to the phrase (the server embeds it, so it
-// takes about a second). The results stand in for the list; typing goes back to filtering.
+// Empty the search box and show the whole list.
+function clearSearch() {
+  const input = document.getElementById("search");
+  if (input) input.value = "";
+  showRanking(false);
+  applySearch();
+}
+
+// --- Ranking -----------------------------------------------------------------------------------
+// Enter ranks notes by semantic similarity to the phrase (the server embeds it, so it takes about a
+// second). The results stand in for the list; typing goes back to filtering.
 
 function isRanking() {
   return !document.getElementById("ranked-notes")?.hidden;
@@ -180,14 +181,16 @@ function rank() {
   const params = new URLSearchParams({ q: text });
   for (const tag of tags) params.append("tag", tag);
   const waiting = document.createElement("p");
-  waiting.className = "px-5 py-2 text-sm opacity-60";
+  waiting.className = "px-4 py-2 text-sm opacity-60";
   waiting.textContent = "Ranking…";
   ranked.replaceChildren(waiting);
   showRanking(true);
-  htmx.ajax("GET", `/search?${params}`, { target: ranked, swap: "innerHTML" });
+  htmx.ajax("GET", `/search?${params}`, { target: ranked });
 }
 
-// Add `#tag` to the search box, or remove it if it's there, then filter.
+// --- Tags --------------------------------------------------------------------------------------
+// Clicking a tag on an open note adds `#tag` to the search box, or removes it, then searches again.
+
 function toggleTag(tag) {
   const input = document.getElementById("search");
   if (!input) return;
@@ -200,58 +203,9 @@ function toggleTag(tag) {
   else applySearch();
 }
 
-// Tags in the note view (they toggle `#tag` in the search box); the ranking's close button.
-document.addEventListener("click", (event) => {
-  if (event.target.closest("[data-close-ranking]")) {
-    showRanking(false);
-    return;
-  }
-  const tag = event.target.closest("[data-tag]");
-  if (!tag) return;
-  event.preventDefault();
-  toggleTag(tag.dataset.tag);
-});
-
-document.addEventListener("input", (event) => {
-  if (event.target.id !== "search") return;
-  showRanking(false);
-  applySearch();
-});
-// `/` anywhere but in a text field jumps to the search box.
-document.addEventListener("keydown", (event) => {
-  if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
-  if (event.target.closest("input, textarea, select, [contenteditable]")) return;
-  const input = document.getElementById("search");
-  if (!input) return;
-  event.preventDefault();
-  input.focus();
-  input.select();
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.target.id !== "search") return;
-  if (event.key === "Enter" && !event.isComposing) {
-    event.preventDefault();
-    rank();
-  } else if (event.key === "Escape") {
-    event.target.value = "";
-    showRanking(false);
-    applySearch();
-  }
-});
-// Re-apply the current search whenever the sidebar is (re)loaded.
-htmx.onLoad(applySearch);
-
-// After creating a note, show the whole list so the new note appears (and is selected): clear the
-// search box and close any ranking. The server's `HX-Trigger: noteCreated` also reloads the list.
-document.addEventListener("noteCreated", () => {
-  const input = document.getElementById("search");
-  if (input) input.value = "";
-  showRanking(false);
-  applySearch();
-});
-
+// --- The current note --------------------------------------------------------------------------
 // Mark the note whose page we're on (`/n/42`) in the sidebar, for styling and screen readers.
+
 function markCurrent() {
   const match = location.pathname.match(/^\/n\/(\d+)$/);
   const current = match ? match[1] : null;
@@ -262,8 +216,62 @@ function markCurrent() {
   }
 }
 
-htmx.onLoad(markCurrent);
+// --- Events ------------------------------------------------------------------------------------
+
+// On the initial page and every fragment htmx swaps in (the sidebar, a note, ranked results).
+htmx.onLoad((root) => {
+  showTimes(root);
+  applySearch();
+  markCurrent();
+});
+setInterval(() => showTimes(document), 60_000);
+
+document.addEventListener("input", (event) => {
+  if (event.target.id === "search") {
+    showRanking(false);
+    applySearch();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  // In the search box: Enter ranks, Escape clears.
+  if (event.target.id === "search") {
+    if (event.key === "Enter" && !event.isComposing) {
+      event.preventDefault();
+      rank();
+    } else if (event.key === "Escape") {
+      clearSearch();
+    }
+    return;
+  }
+  // `/` anywhere but in a text field jumps to the search box.
+  if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.target.closest("input, textarea, select, [contenteditable]")) return;
+  const input = document.getElementById("search");
+  if (!input) return;
+  event.preventDefault();
+  input.focus();
+  input.select();
+});
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-ranking]")) {
+    showRanking(false);
+    return;
+  }
+  const tag = event.target.closest("[data-tag]");
+  if (tag) {
+    event.preventDefault();
+    toggleTag(tag.dataset.tag);
+  }
+});
+
+// After creating a note, show the whole list so the new note appears (and is selected). The
+// server's `HX-Trigger: noteCreated` also reloads the list.
+document.addEventListener("noteCreated", clearSearch);
+
 document.addEventListener("htmx:pushedIntoHistory", markCurrent);
+
 // Back and forward restore an earlier page: bring its filter and highlight up to date.
 document.addEventListener("htmx:historyRestore", () => {
   if (!document.getElementById("search")?.value.trim()) showRanking(false);

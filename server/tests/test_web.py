@@ -243,7 +243,9 @@ def test_note_detail(browser: TestClient) -> None:
     assert "&lt;script&gt;" in rendered
     raw = browser.get(f"/notes/{note.id}?mode=raw").text
     assert "# Heading" in raw
-    assert browser.get("/notes/999").status_code == 404
+    missing = browser.get("/notes/999")
+    assert missing.status_code == 404
+    assert "Note not found." in missing.text and "text-error" in missing.text
 
 
 def test_note_detail_bar(browser: TestClient) -> None:
@@ -251,7 +253,7 @@ def test_note_detail_bar(browser: TestClient) -> None:
     html = browser.get(f"/notes/{note.id}").text
     # The bar: ID, dates and actions, outside the scrolling body; tags come after it, in the body.
     bar = html.split("</header>")[0]
-    assert '<header class="flex-none' in bar
+    assert '<header class="pane-bar">' in bar
     assert '<div class="note-body flex-1 overflow-y-auto">' in html.split("</header>")[1]
     assert f'<span class="font-mono">#{note.id}</span>' in bar
     assert "Rendered" in bar and "Edit" in bar and "Delete" in bar

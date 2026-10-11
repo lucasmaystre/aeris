@@ -1,24 +1,42 @@
 {% extends "base.html" %}
 
-{# Dev only (sandbox): every piece of the UI on one page, rendered by the real partials. #}
+{# Dev only (sandbox): the app's look on one page, rendered by the real partials with fixture data.
+   It only uses classes the app uses (Tailwind doesn't scan this file); its own layout is the
+   `sg-` styles below. #}
 
 {% block body_class %}font-sans text-sm bg-base-100 text-base-content{% endblock %}
 
 {% block content %}
-<main class="p-8 flex flex-col gap-12">
+<style>
+  .sg-page { padding: 2rem; display: flex; flex-direction: column; gap: 3rem; }
+  .sg-section { display: flex; flex-direction: column; gap: 1rem; }
+  .sg-section > h2 { font-size: 1.25rem; font-weight: 600; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-base-300); }
+  .sg-label { font-size: 0.875rem; font-weight: 600; opacity: 0.6; margin-bottom: 0.5rem; }
+  .sg-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 2rem; }
+  .sg-line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .sg-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.75rem; }
+  .sg-swatch { border: 1px solid var(--color-base-300); border-radius: var(--radius-box); overflow: hidden; font-size: 0.75rem; }
+  .sg-swatch > div:first-child { height: 3.5rem; }
+  .sg-swatch > div:last-child { padding: 0.5rem; }
+  .sg-frame { border: 1px solid var(--color-base-300); overflow: hidden; }
+  .sg-sidebar { width: 20rem; height: 36rem; overflow-y: auto; }
+  .sg-pane { height: 30rem; }
+</style>
+
+<main class="sg-page">
 
   <header>
-    <h1 class="text-3xl font-bold">Style guide</h1>
-    <p class="text-sm opacity-60">Theme tokens, daisyUI components and aeris's own partials, with fixture data.</p>
+    <h1 style="font-size: 1.875rem; font-weight: 700">Style guide</h1>
+    <p class="opacity-60">The theme, the controls the app uses, and its own partials with fixture data.</p>
   </header>
 
-  <section class="flex flex-col gap-4">
-    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">Colors</h2>
-    <div id="swatches" class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
+  <section class="sg-section">
+    <h2>Colors</h2>
+    <div class="sg-swatches">
       {% for name in colors %}
-      <div class="rounded-box border border-base-300 overflow-hidden text-xs">
-        <div class="h-14" style="background: var(--color-{{ name }})"></div>
-        <div class="p-2">
+      <div class="sg-swatch">
+        <div style="background: var(--color-{{ name }})"></div>
+        <div>
           <div class="font-semibold">{{ name }}</div>
           <div class="font-mono opacity-60" data-color="{{ name }}"></div>
         </div>
@@ -27,161 +45,118 @@
     </div>
   </section>
 
-  <section class="flex flex-col gap-4">
-    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">Type</h2>
-    <p class="text-sm">Sans: <span class="font-mono" data-font="--font-sans"></span><br>
+  <section class="sg-section">
+    <h2>Type</h2>
+    <p>Sans: <span class="font-mono" data-font="--font-sans"></span><br>
        Mono: <span class="font-mono" data-font="--font-mono"></span></p>
-    {% for size in ["text-xs", "text-sm", "text-base", "text-lg", "text-xl", "text-2xl", "text-3xl"] %}
-    <div class="flex items-baseline gap-6">
-      <span class="w-20 flex-none text-xs font-mono opacity-60">{{ size }}</span>
-      <span class="{{ size }}">The quick brown fox jumps over the lazy dog</span>
-      <span class="{{ size }} font-semibold">Semibold</span>
-      <span class="{{ size }} font-mono">mono 0123</span>
+    {% for px, use in [(12, "metadata"), (14, "interface text"), (16, "notes"), (18, "the brand"), (22, "h2 in a note"), (28, "h1 in a note")] %}
+    <div class="sg-line" style="gap: 1.5rem">
+      <span class="font-mono text-xs opacity-60" style="width: 9rem">{{ px }}px · {{ use }}</span>
+      <span style="font-size: {{ px }}px">The quick brown fox jumps over the lazy dog</span>
+      <span style="font-size: {{ px }}px" class="font-semibold">Semibold</span>
+      <span style="font-size: {{ px }}px" class="font-mono">mono 0123</span>
     </div>
     {% endfor %}
   </section>
 
-  <section class="flex flex-col gap-6">
-    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">daisyUI components</h2>
-
-    <div class="flex flex-col gap-3">
-      <h3 class="text-sm font-semibold opacity-60">Buttons</h3>
-      {% for size in ["btn-xs", "btn-sm", "", "btn-lg"] %}
-      <div class="flex flex-wrap items-center gap-2">
-        <button class="btn btn-primary {{ size }}">Primary</button>
-        <button class="btn btn-neutral {{ size }}">Neutral</button>
-        <button class="btn btn-outline {{ size }}">Outline</button>
-        <button class="btn btn-soft {{ size }}">Soft</button>
-        <button class="btn btn-ghost {{ size }}">Ghost</button>
-        <button class="btn btn-link {{ size }}">Link</button>
-        <button class="btn btn-ghost text-error {{ size }}">Delete</button>
-        <button class="btn btn-primary {{ size }}" disabled>Disabled</button>
+  <section class="sg-section">
+    <h2>Controls</h2>
+    <div class="sg-row">
+      <div>
+        <div class="sg-label">Buttons</div>
+        <div class="sg-line">
+          <button class="btn btn-primary btn-sm">Save</button>
+          <button class="btn btn-ghost btn-sm">Cancel</button>
+          <button class="btn btn-ghost btn-sm text-base-content/60 hover:text-error">Delete</button>
+          <button class="btn btn-primary" style="width: 10rem">Log in</button>
+        </div>
       </div>
-      {% endfor %}
-      <div class="join">
-        <button class="join-item btn btn-sm btn-neutral">Rendered</button>
-        <button class="join-item btn btn-sm">Raw</button>
+      <div>
+        <div class="sg-label">View toggle</div>
+        <div role="tablist" class="tabs tabs-box tabs-sm">
+          <button role="tab" class="tab tab-active">Rendered</button>
+          <button role="tab" class="tab">Raw</button>
+        </div>
       </div>
-    </div>
-
-    <div class="flex flex-col gap-3 max-w-md">
-      <h3 class="text-sm font-semibold opacity-60">Inputs</h3>
-      <input class="input w-full" placeholder="Input">
-      <label class="input w-full">
-        <svg class="h-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input type="search" class="grow" placeholder="Search with an icon">
-        <kbd class="kbd kbd-sm">/</kbd>
-      </label>
-      <textarea class="textarea w-full" placeholder="Textarea"></textarea>
-      <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox checkbox-sm" checked> Checkbox</label>
-    </div>
-
-    <div class="flex flex-col gap-3">
-      <h3 class="text-sm font-semibold opacity-60">Badges and keys</h3>
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="badge">badge</span>
-        <span class="badge badge-sm badge-primary">primary</span>
-        <span class="badge badge-sm badge-secondary">#secondary</span>
-        <span class="badge badge-sm badge-accent">accent</span>
-        <span class="badge badge-sm badge-outline">outline</span>
-        <span class="badge badge-sm badge-soft badge-primary">soft</span>
-        <span class="badge badge-sm badge-ghost">ghost</span>
-        <kbd class="kbd kbd-sm">⌘</kbd><kbd class="kbd kbd-sm">K</kbd>
+      <div style="width: 18rem">
+        <div class="sg-label">Search</div>
+        <label class="input input-sm w-full">
+          <input type="search" placeholder="Filter, or Enter to rank by similarity" class="peer grow">
+          <kbd class="kbd kbd-sm peer-focus:hidden peer-[:not(:placeholder-shown)]:hidden">/</kbd>
+        </label>
       </div>
-    </div>
-
-    <div class="flex flex-col gap-3 max-w-md">
-      <h3 class="text-sm font-semibold opacity-60">Alerts</h3>
-      <div role="alert" class="alert alert-soft alert-info text-sm">Info: something to know.</div>
-      <div role="alert" class="alert alert-soft alert-success text-sm">Saved.</div>
-      <div role="alert" class="alert alert-soft alert-warning text-sm">This note changed since you opened it.</div>
-      <div role="alert" class="alert alert-soft alert-error text-sm">Ranking isn't available right now.</div>
-    </div>
-
-    <div class="flex flex-wrap items-start gap-8">
-      <div class="flex flex-col gap-3">
-        <h3 class="text-sm font-semibold opacity-60">Menu, list, tooltip, modal</h3>
-        <ul class="menu bg-base-200 rounded-box w-56">
-          <li><a>Item</a></li>
-          <li><a class="menu-active">Active item</a></li>
-          <li><a>Another item</a></li>
-        </ul>
-        <ul class="list bg-base-100 rounded-box border border-base-300 w-72">
-          {% for note in notes[:3] %}
-          <li class="list-row"><div><div class="font-semibold">{{ note.title }}</div><div class="text-xs opacity-60">#{{ note.id }} · {{ note.updated_at | ago }}</div></div></li>
-          {% endfor %}
-        </ul>
-        <div class="tooltip" data-tip="A tooltip"><button class="btn btn-sm">Hover me</button></div>
-        <button class="btn btn-sm" onclick="document.getElementById('demo-modal').showModal()">Open modal</button>
-        <dialog id="demo-modal" class="modal">
-          <div class="modal-box">
-            <h3 class="font-semibold">Delete this note?</h3>
-            <p class="py-2 text-sm">It disappears from every list, but stays in the database.</p>
-            <div class="modal-action">
-              <form method="dialog" class="flex gap-2"><button class="btn btn-sm btn-ghost">Cancel</button><button class="btn btn-sm btn-error">Delete</button></form>
-            </div>
-          </div>
-        </dialog>
+      <div>
+        <div class="sg-label">Tags</div>
+        <div class="sg-line">
+          <span class="badge badge-sm badge-secondary">#infra/kubernetes</span>
+          <span class="badge badge-sm badge-secondary">#reading</span>
+        </div>
+      </div>
+      <div style="width: 28rem">
+        <div class="sg-label">Alerts</div>
+        <div role="alert" class="alert alert-soft alert-warning text-sm">{{ conflict_message }}</div>
+        <div style="height: 0.5rem"></div>
+        <div role="alert" class="alert alert-soft alert-error text-sm">Invalid token.</div>
       </div>
     </div>
   </section>
 
-  <section class="flex flex-col gap-6">
-    <h2 class="text-xl font-semibold border-b border-base-300 pb-2">aeris components</h2>
+  <section class="sg-section">
+    <h2>aeris components</h2>
 
-    <div class="flex flex-wrap items-start gap-8">
-      <div class="flex flex-col gap-3">
-        <h3 class="text-sm font-semibold opacity-60">Sidebar: note list</h3>
-        <div class="w-80 h-[36rem] overflow-y-auto border border-base-300">
-          {% include "partials/note_list.html" %}
-        </div>
+    <div class="sg-row">
+      <div>
+        <div class="sg-label">Sidebar: note list</div>
+        <div class="sg-frame sg-sidebar">{% include "partials/note_list.html" %}</div>
       </div>
-      <div class="flex flex-col gap-3">
-        <h3 class="text-sm font-semibold opacity-60">Sidebar: ranked by similarity</h3>
-        <div class="w-80 h-[36rem] overflow-y-auto border border-base-300">
+      <div>
+        <div class="sg-label">Sidebar: ranked by similarity</div>
+        <div class="sg-frame sg-sidebar">
           {% with hits = ranked, error = none %}{% include "partials/ranked_notes.html" %}{% endwith %}
         </div>
       </div>
-      <div class="flex flex-col gap-3">
-        <h3 class="text-sm font-semibold opacity-60">Login</h3>
+      <div>
+        <div class="sg-label">Login</div>
         {% with next = "/" %}{% include "partials/login_form.html" %}{% endwith %}
       </div>
     </div>
 
-    <div class="flex flex-col gap-3">
-      <h3 class="text-sm font-semibold opacity-60">Note, rendered</h3>
-      <div class="h-[40rem] overflow-y-auto border border-base-300">
+    <div>
+      <div class="sg-label">Note, rendered</div>
+      <div class="sg-frame" style="height: 40rem">
         {% with note = long_note, rendered_html = long_html, mode = "rendered" %}{% include "partials/note_detail.html" %}{% endwith %}
       </div>
     </div>
 
-    <div class="flex flex-col gap-3">
-      <h3 class="text-sm font-semibold opacity-60">Note, raw</h3>
-      <div class="h-80 overflow-y-auto border border-base-300">
+    <div>
+      <div class="sg-label">Note, raw</div>
+      <div class="sg-frame" style="height: 20rem">
         {% with note = short_note, rendered_html = none, mode = "raw" %}{% include "partials/note_detail.html" %}{% endwith %}
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-8">
-      <div class="flex flex-col gap-3 flex-1 min-w-96">
-        <h3 class="text-sm font-semibold opacity-60">Editor, new note</h3>
-        <div class="h-[30rem] overflow-y-auto border border-base-300">
+    <div class="sg-row">
+      <div style="flex: 1; min-width: 24rem">
+        <div class="sg-label">Editor, new note</div>
+        <div class="sg-frame sg-pane">
           {% with note_id = none, content = "", expected_updated_at = none, error = none, conflict = false %}{% include "partials/note_form.html" %}{% endwith %}
         </div>
       </div>
-      <div class="flex flex-col gap-3 flex-1 min-w-96">
-        <h3 class="text-sm font-semibold opacity-60">Editor, conflict</h3>
-        <div class="h-[30rem] overflow-y-auto border border-base-300">
+      <div style="flex: 1; min-width: 24rem">
+        <div class="sg-label">Editor, conflict</div>
+        <div class="sg-frame sg-pane">
           {% with note_id = short_note.id, content = short_note.content, expected_updated_at = short_note.updated_at, error = conflict_message, conflict = true %}{% include "partials/note_form.html" %}{% endwith %}
         </div>
       </div>
     </div>
 
-    <div class="flex flex-col gap-3">
-      <h3 class="text-sm font-semibold opacity-60">Note deleted</h3>
-      <div class="h-24 border border-base-300">
-        {% with note_id = short_note.id %}{% include "partials/note_deleted.html" %}{% endwith %}
+    <div class="sg-row">
+      {% for text, error in [("Select a note, or create a new one.", false), ("Note #1 deleted.", false), ("Note not found.", true)] %}
+      <div style="flex: 1; min-width: 16rem">
+        <div class="sg-label">Message</div>
+        <div class="sg-frame" style="height: 6rem">{% include "partials/message.html" %}</div>
       </div>
+      {% endfor %}
     </div>
   </section>
 

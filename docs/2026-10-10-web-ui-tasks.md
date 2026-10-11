@@ -25,9 +25,8 @@ Decisions:
   dropped: redundant with the search box, and it squeezed it.
 - Theme: slate neutrals + indigo accent (`#4f46e5`). Font: Inter for text, Geist Mono for code and
   IDs (B.1a, picked from the style guide and a side-by-side gallery).
-- The style guide's template (`dev/templates/`) is a Tailwind source, so the production CSS also
-  carries the components it shows: about 3 KB gzipped (11 → 14.5 KB). Accepted while we choose
-  components; the gap shrinks as the app adopts them (A.3).
+- The style guide only uses classes the app uses, plus its own `sg-` styles; Tailwind no longer
+  scans `dev/templates/` (E.1; it did from A.3 to D.5, adding about 3 KB gzipped to production).
 
 ## Findings
 
@@ -133,6 +132,20 @@ From D.4 and D.5 (2026-10-11):
   the one indigo button.
 - New gallery view `note-raw`.
 
+From E.1 (2026-10-11):
+
+- Changes: one `message.html` for the empty, deleted and not-found views (not-found was inline HTML
+  in `web.py` with a raw `text-red-600`, and a second copy in `index.html`); `pane-bar` and
+  `note-source` utilities in `app.css` hold the bar's 57 px and the source column's recipe; no
+  `hx-swap="innerHTML"` (htmx's default); `app.js` reorganized by topic with one listener per event;
+  `_detail_context` shared by `/n/{id}` and the partial; `_form` takes named arguments; unused CSS
+  (`.select-sm`, `.select:focus`, `.textarea:focus`) and the `ago` filter removed.
+- Production CSS: 17.4 → 12.6 KB gzipped.
+- Checked pixel by pixel: before/after galleries shot back to back differ only where relative times
+  ("x minutes ago") are drawn; the style guide changed on purpose.
+- Don't `git stash` with the sandbox running: its CSS watcher rebuilt `app.css` meanwhile and the
+  stash wouldn't pop (recovered, verified identical).
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -165,6 +178,11 @@ From D.4 and D.5 (2026-10-11):
 - [x] D.3 Editor fills the area below the bar (W14)
 - [x] D.4 Raw view as the editor's read-only twin: no box, same font and column
 - [x] D.5 A more muted note bar: segmented Rendered/Raw, quiet Edit and Delete
+
+## Phase E: Cleanup
+
+- [x] E.1 Web UI code review: one message view, shared bar and source-text utilities, `app.js`
+  organized by topic, leftovers removed, style guide trimmed to what the app uses
 
 ## Backlog
 

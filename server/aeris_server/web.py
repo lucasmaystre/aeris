@@ -27,6 +27,8 @@ CONFLICT_MESSAGE = (
 )
 RANKING_UNAVAILABLE = "Ranking isn't available right now."
 
+Mode = Literal["rendered", "raw"]  # How a note is shown: Markdown rendered, or its source.
+
 logger = logging.getLogger(__name__)
 
 _MARKDOWN_EXTRAS = ["fenced-code-blocks", "tables", "strike"]
@@ -67,7 +69,6 @@ def render_markdown(content: str) -> str:
 
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
-templates.env.filters["ago"] = ago
 templates.env.filters["time_tag"] = time_tag
 templates.env.filters["relative_time"] = relative_time
 templates.env.filters["preview"] = preview
@@ -170,11 +171,13 @@ def note_page(
 ) -> HTMLResponse:
     """A note's own page: the whole layout, with the note already open."""
     note = notes.get_note(session, note_id)
-    context: dict[str, Any] = {"token": token, "note": note, "missing": note is None}
-    if note is not None:
-        context.update(rendered_html=render_markdown(note.content or ""), mode="rendered")
-    status_code = status.HTTP_200_OK if note else status.HTTP_404_NOT_FOUND
-    return templates.TemplateResponse(request, "index.html", context, status_code=status_code)
+    if note is None:
+        context: dict[str, Any] = {"token": token, "missing": True}
+        return templates.TemplateResponse(
+            request, "index.html", context, status_code=status.HTTP_404_NOT_FOUND
+        )
+    context = {"token": token, **_detail_context(note, "rendered")}
+    return templates.TemplateResponse(request, "index.html", context)
 
 
 @router.get("/notes", dependencies=READ)
@@ -214,8 +217,8 @@ def new_note_form(request: Request) -> HTMLResponse:
 def edit_note_form(request: Request, session: SessionDep, note_id: int) -> HTMLResponse:
     note = notes.get_note(session, note_id)
     if note is None:
-        return _not_found()
-    return _form(request, note_id, note.content or "", note.updated_at)
+        return _not_found(request)
+    return _form(request, note_id=note_id, content=note.content or "", expected=note.updated_at)
 
 
 @router.get("/notes/{note_id}", dependencies=READ)
@@ -223,11 +226,11 @@ def note_detail(
     request: Request,
     session: SessionDep,
     note_id: int,
-    mode: Literal["rendered", "raw"] = "rendered",
+    mode: Mode = "rendered",
 ) -> HTMLResponse:
     note = notes.get_note(session, note_id)
     if note is None:
-        return _not_found()
+        return _not_found(request)
     return _detail(request, note, mode)
 
 
@@ -238,7 +241,7 @@ def create_note(
     try:
         note = notes.create_note(session, content)
     except notes.EmptyContent as error:
-        return _form(request, None, content, None, error=str(error))
+        return _form(request, content=content, error=str(error))
     response = _detail(request, note)
     response.headers["HX-Trigger"] = "noteCreated"
     response.headers["HX-Push-Url"] = f"/n/{note.id}"
@@ -256,16 +259,22 @@ def update_note(
     try:
         note = notes.update_note(session, note_id, content, expected_updated_at)
     except notes.NoteNotFound:
-        return _not_found()
+        return _not_found(request)
     except notes.EmptyContent as error:
-        return _form(request, note_id, content, expected_updated_at, error=str(error))
+        return _form(
+            request,
+            note_id=note_id,
+            content=content,
+            expected=expected_updated_at,
+            error=str(error),
+        )
     except notes.StaleNote as error:
         # Keep the user's text; a second save deliberately overwrites the newer version.
         return _form(
             request,
-            note_id,
-            content,
-            error.current.updated_at,
+            note_id=note_id,
+            content=content,
+            expected=error.current.updated_at,
             error=CONFLICT_MESSAGE,
             conflict=True,
         )
@@ -279,8 +288,8 @@ def delete_note(request: Request, session: SessionDep, note_id: int) -> HTMLResp
     try:
         notes.delete_note(session, note_id)
     except notes.NoteNotFound:
-        return _not_found()
-    response = _partial(request, "note_deleted.html", note_id=note_id)
+        return _not_found(request)
+    response = _partial(request, "message.html", text=f"Note #{note_id} deleted.", error=False)
     response.headers["HX-Trigger"] = "noteDeleted"
     response.headers["HX-Push-Url"] = "/"
     return response
@@ -290,34 +299,38 @@ def _partial(request: Request, name: str, **context: Any) -> HTMLResponse:
     return templates.TemplateResponse(request, f"partials/{name}", context)
 
 
-def _detail(
-    request: Request, note: NoteData, mode: Literal["rendered", "raw"] = "rendered"
-) -> HTMLResponse:
-    content = note.content or ""
-    rendered = render_markdown(content) if mode == "rendered" else None
-    return _partial(request, "note_detail.html", note=note, rendered_html=rendered, mode=mode)
+def _detail_context(note: NoteData, mode: Mode) -> dict[str, Any]:
+    """What `note_detail.html` needs, in a partial or in the full page."""
+    rendered = render_markdown(note.content or "") if mode == "rendered" else None
+    return {"note": note, "rendered_html": rendered, "mode": mode}
+
+
+def _detail(request: Request, note: NoteData, mode: Mode = "rendered") -> HTMLResponse:
+    return _partial(request, "note_detail.html", **_detail_context(note, mode))
 
 
 def _form(
     request: Request,
-    note_id: int | None,
-    content: str,
-    expected_updated_at: datetime | None,
+    *,
+    note_id: int | None = None,
+    content: str = "",
+    expected: datetime | None = None,
     error: str | None = None,
     conflict: bool = False,
 ) -> HTMLResponse:
+    """The editor: a new note (no `note_id`), or an edit expecting the note's `updated_at`."""
     return _partial(
         request,
         "note_form.html",
         note_id=note_id,
         content=content,
-        expected_updated_at=expected_updated_at,
+        expected_updated_at=expected,
         error=error,
         conflict=conflict,
     )
 
 
-def _not_found() -> HTMLResponse:
-    return HTMLResponse(
-        "<p class='p-6 text-red-600'>Note not found.</p>", status_code=status.HTTP_404_NOT_FOUND
-    )
+def _not_found(request: Request) -> HTMLResponse:
+    response = _partial(request, "message.html", text="Note not found.", error=True)
+    response.status_code = status.HTTP_404_NOT_FOUND
+    return response

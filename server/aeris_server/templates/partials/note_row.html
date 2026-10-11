@@ -6,8 +6,7 @@
      href="/n/{{ note.id }}"
      hx-get="/notes/{{ note.id }}"
      hx-push-url="/n/{{ note.id }}"
-     hx-target="#main-panel"
-     hx-swap="innerHTML">
+     hx-target="#main-panel">
     <div class="flex items-baseline gap-2">
       <span class="flex-1 min-w-0 truncate font-semibold">{{ note.title or "(untitled)" }}</span>
       {% if score is not none %}

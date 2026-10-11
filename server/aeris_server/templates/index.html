@@ -16,10 +16,9 @@
     <div id="note-list-container" class="flex-1 overflow-y-auto overflow-x-hidden"
          hx-get="/notes"
          hx-trigger="load, noteCreated from:body, noteUpdated from:body, noteDeleted from:body"
-         hx-target="#note-list-container"
-         hx-swap="innerHTML">
+         hx-target="#note-list-container">
     </div>
-    <!-- Stands in for the list while ranking, so list reloads can't replace the results. -->
+    {# Stands in for the list while ranking, so list reloads can't replace the results. #}
     <div id="ranked-notes" class="flex-1 overflow-y-auto overflow-x-hidden" hidden></div>
   </aside>
 
@@ -29,11 +28,9 @@
     {% if note %}
     {% include "partials/note_detail.html" %}
     {% elif missing %}
-    <p class="p-6 text-error">Note not found.</p>
+    {% with text = "Note not found.", error = true %}{% include "partials/message.html" %}{% endwith %}
     {% else %}
-    <div class="h-full flex items-center justify-center text-sm opacity-50">
-      Select a note, or create a new one.
-    </div>
+    {% with text = "Select a note, or create a new one.", error = false %}{% include "partials/message.html" %}{% endwith %}
     {% endif %}
   </main>
 

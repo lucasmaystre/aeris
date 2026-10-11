@@ -1,10 +1,8 @@
 <form class="h-full flex flex-col"
       {% if note_id %}hx-put="/notes/{{ note_id }}"{% else %}hx-post="/notes"{% endif %}
-      hx-target="#main-panel"
-      hx-swap="innerHTML">
+      hx-target="#main-panel">
 
-  {# The same bar as the note view: full width, as tall as the sidebar's search row. #}
-  <header class="flex-none h-[57px] flex items-center gap-3 px-6 border-b border-base-300">
+  <header class="pane-bar">
     <div class="flex-1 min-w-0 truncate text-sm">
       {% if note_id %}
       <span class="font-semibold">Edit note <span class="font-mono">#{{ note_id }}</span></span>
@@ -16,8 +14,7 @@
     <button type="button"
             class="btn btn-ghost btn-sm"
             hx-get="/notes/{{ note_id }}"
-            hx-target="#main-panel"
-            hx-swap="innerHTML">
+            hx-target="#main-panel">
       Cancel
     </button>
     {% else %}
@@ -43,12 +40,11 @@
   {% if expected_updated_at %}
   <input type="hidden" name="expected_updated_at" value="{{ expected_updated_at.isoformat() }}">
   {% endif %}
-  {# The whole area below the bar. The text column lines up with the rendered note's (1.5rem in,
-     45rem wide at most); the right padding keeps the field itself full width. #}
+  {# The whole area below the bar is the field. #}
   <textarea name="content"
             placeholder="Write your note here…"
             autofocus
             aria-label="Note content"
-            class="flex-1 min-h-0 w-full resize-none bg-base-100 outline-none font-mono text-sm leading-relaxed py-6 pl-6 pr-[max(1.5rem,calc(100%-46.5rem))]">{{ content }}</textarea>
+            class="note-source flex-1 min-h-0 w-full resize-none bg-base-100 outline-none">{{ content }}</textarea>
 
 </form>

@@ -4,8 +4,6 @@
 @import "tailwindcss" source(none);
 @source "../aeris_server/templates";
 @source "../static/app.js";
-/* The dev-only style guide shows components the app may adopt: about 3 KB gzipped. */
-@source "../../dev/templates";
 
 @plugin "@tailwindcss/typography";
 
@@ -75,9 +73,20 @@
 /* Type scale: 14px interface text, 16px notes (prose), 12px metadata. daisyUI's small controls
    default to 12px; keep them at 14px, so buttons read like the text around them. */
 .btn-sm,
-.input-sm,
-.select-sm {
+.input-sm {
   font-size: var(--text-sm);
+}
+
+/* The bar atop the note view and the editor: full width, and 57px tall with its border, so that
+   border continues the line under the sidebar's search row (12px + a 32px input + 12px + 1px). */
+@utility pane-bar {
+  @apply flex-none h-[57px] flex items-center gap-3 px-6 border-b border-base-300;
+}
+
+/* A note's source text, in Raw mode and the editor: the rendered note's column (it starts 1.5rem
+   in, at most 45rem of text: `p-6 max-w-3xl`), with right padding so the box stays full width. */
+@utility note-source {
+  @apply font-mono text-sm leading-relaxed py-6 pl-6 pr-[max(1.5rem,calc(100%-46.5rem))];
 }
 
 /* Note content (`prose`): light code blocks instead of daisyUI's near-black ones, links in the
@@ -111,9 +120,7 @@
 
 /* Focus: no ring (daisyUI draws one), just a darker border. */
 .input:focus,
-.input:focus-within,
-.textarea:focus,
-.select:focus {
+.input:focus-within {
   --input-color: color-mix(in oklab, var(--color-base-content) 45%, transparent);
   outline: none;
 }

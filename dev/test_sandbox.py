@@ -59,7 +59,7 @@ def test_fixtures_are_notes() -> None:
 def test_styleguide_renders_every_section(app: TestClient) -> None:
     page = app.get("/dev/styleguide")
     assert page.status_code == 200
-    for heading in ["Colors", "Type", "daisyUI components", "aeris components"]:
+    for heading in ["Colors", "Type", "Controls", "aeris components"]:
         assert f">{heading}</h2>" in page.text
     # The real partials, with fixture data.
     assert 'id="note-list"' in page.text
@@ -69,6 +69,7 @@ def test_styleguide_renders_every_section(app: TestClient) -> None:
     assert "changed since you opened it" in page.text
     assert 'action="/login"' in page.text
     assert 'data-color="primary"' in page.text
+    assert "Note not found." in page.text and "Note #1 deleted." in page.text
 
 
 def test_sample_notes_match_the_fixtures() -> None:
