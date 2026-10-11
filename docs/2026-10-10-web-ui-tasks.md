@@ -146,6 +146,14 @@ From E.1 (2026-10-11):
 - Don't `git stash` with the sandbox running: its CSS watcher rebuilt `app.css` meanwhile and the
   stash wouldn't pop (recovered, verified identical).
 
+From F.1 (2026-10-11):
+
+- `deploy.yml`: unit tests, `vercel@63.1.0 deploy --prod` from `server/`, then `/healthz`. The
+  secrets (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`) are environment secrets of the
+  `production` environment, so other workflows can't read the token.
+- First run (manual): green in 70 s, a new production deployment on Vercel. Pushes that don't touch
+  `server/` (docs, the CLI) don't deploy; `gh workflow run deploy.yml` deploys by hand.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -186,7 +194,7 @@ From E.1 (2026-10-11):
 
 ## Phase F: Deploys
 
-- [ ] F.1 Deploy from GitHub Actions on every push to `main` that touches `server/`, after the unit
+- [x] F.1 Deploy from GitHub Actions on every push to `main` that touches `server/`, after the unit
   tests (like PyPI publishing)
 
 ## Phase G: Mobile
