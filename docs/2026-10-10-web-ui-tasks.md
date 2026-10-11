@@ -105,6 +105,14 @@ From D.1 (2026-10-10):
   as text, so tags appear twice: for D.2.
 - New gallery view `note-scrolled`: the long note scrolled by 900 px.
 
+From D.2 (2026-10-10):
+
+- daisyUI maps the typography plugin's code blocks to `neutral` / `neutral-content` (near-black on
+  white): `app.css` points them at `base-200` / `base-content`, with a 1px border. Links use the
+  accent; headings are semibold, `h1` 28px, `h2` 22px, `h3` 18px. Body text unchanged (16px).
+- Tags stay twice on a rendered note (badges above it, and its `Tags:` line as text): the user
+  chose to keep it.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -133,7 +141,7 @@ From D.1 (2026-10-10):
 ## Phase D: Note pane
 
 - [x] D.1 Full-width header bar, edge-to-edge border, fixed while the note scrolls (W12, W13)
-- [ ] D.2 Content styling: softer prose, light code blocks (W11)
+- [x] D.2 Content styling: softer prose, light code blocks (W11)
 - [ ] D.3 Editor fills the area below the bar (W14)
 
 ## Backlog

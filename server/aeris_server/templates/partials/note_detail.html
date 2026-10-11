@@ -46,7 +46,7 @@
       {% endif %}
 
       {% if mode == "raw" %}
-      <pre class="font-mono text-sm whitespace-pre-wrap break-words leading-relaxed bg-base-200 rounded-box p-4">{{ note.content }}</pre>
+      <pre class="font-mono text-sm whitespace-pre-wrap break-words leading-relaxed bg-base-200 border border-base-300 rounded-box p-4">{{ note.content }}</pre>
       {% else %}
       <div class="prose max-w-none">
         {{ rendered_html | safe }}
