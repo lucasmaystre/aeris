@@ -15,8 +15,9 @@
 
   <header class="navbar min-h-0 flex-none gap-2 bg-base-200 border-b border-base-300 px-4 py-2">
     <span class="flex-1 flex items-center gap-1.5 text-lg font-semibold tracking-tight">
-      {# The logo: an indigo ring, also the favicon (static/favicon.svg). #}
-      <svg class="size-3.5 text-primary" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+      {# The logo: an indigo ring, also the favicon (static/favicon.svg). 1px down centres it on the
+         lowercase letters (a, e, r, s) rather than the whole line, i's dot included: Inter at 18px. #}
+      <svg class="size-3.5 translate-y-px text-primary" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
       æris
     </span>
     {% if token %}
