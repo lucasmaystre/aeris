@@ -204,11 +204,13 @@ function toggleTag(tag) {
 }
 
 // --- The current note --------------------------------------------------------------------------
-// Mark the note whose page we're on (`/n/42`) in the sidebar, for styling and screen readers.
+// Mark the note whose page we're on (`/n/42`) in the sidebar, for styling and screen readers; none
+// while writing a new note there (the URL stays, so Cancel brings the note back).
 
 function markCurrent() {
   const match = location.pathname.match(/^\/n\/(\d+)$/);
-  const current = match ? match[1] : null;
+  const creating = document.querySelector("#main-panel [data-new-note]");
+  const current = match && !creating ? match[1] : null;
   for (const item of document.querySelectorAll("#sidebar li[data-id]")) {
     const link = item.querySelector("a");
     if (item.dataset.id === current) link.setAttribute("aria-current", "page");

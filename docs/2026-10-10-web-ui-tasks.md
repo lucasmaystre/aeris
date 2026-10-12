@@ -294,6 +294,8 @@ button. Desktop stays pixel-identical.
 ## Phase H: Polish
 
 - [x] H.1 Tighter lists: 0.25em between items, 0.5em after the paragraph that introduces a list
+- [x] H.2 New note clears the sidebar's highlight (it stayed on the note the URL still names)
+- [x] H.3 Logo: an indigo ring left of "æris", also the favicon (SVG) and the iPhone home-screen icon
 
 ## Backlog
 

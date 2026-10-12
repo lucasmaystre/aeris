@@ -12,6 +12,8 @@ client = TestClient(app)
         ("/static/app.css", "text/css"),
         ("/static/htmx.min.js", "text/javascript"),
         ("/static/app.js", "text/javascript"),
+        ("/static/favicon.svg", "image/svg+xml"),
+        ("/static/apple-touch-icon.png", "image/png"),
     ],
 )
 def test_static_file(path: str, content_type: str) -> None:

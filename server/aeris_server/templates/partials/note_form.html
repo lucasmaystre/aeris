@@ -1,5 +1,5 @@
 <form class="h-full flex flex-col"
-      {% if note_id %}hx-put="/notes/{{ note_id }}"{% else %}hx-post="/notes"{% endif %}
+      {% if note_id %}hx-put="/notes/{{ note_id }}"{% else %}hx-post="/notes" data-new-note{% endif %}
       hx-target="#main-panel">
 
   <header class="pane-bar">
