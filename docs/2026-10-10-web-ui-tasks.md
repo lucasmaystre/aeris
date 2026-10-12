@@ -299,3 +299,9 @@ button. Desktop stays pixel-identical.
 
 - Syntax highlighting in code blocks (` ```python `).
 - `#` autocomplete in the search box (type `#la`, pick a tag), if tags grow (C.4).
+- Vim mode in the editor (researched 2026-10-12): CodeMirror 5 (5.65.21) with its `keymap/vim`,
+  about 86 KB gzipped with the Markdown mode, plain scripts vendored like htmx (no build step).
+  Opt-in toggle, desktop only, lazy-loaded when the editor opens; the textarea stays the form field
+  and the phone editor; `:w` saves, `:q` cancels. Alternatives weighed: CodeMirror 6 with
+  `@replit/codemirror-vim` (about 130 KB+, needs an esbuild bundle), Ace (about 180 KB), Monaco
+  (MBs), and no code at all: Firenvim (real Neovim in any textarea) or `aeris edit ID`.
