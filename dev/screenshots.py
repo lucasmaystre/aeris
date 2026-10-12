@@ -87,7 +87,7 @@ def raw(page: Page) -> None:
 
 
 # Logged in, except `login`. Note IDs follow the fixtures' order: 1 is the weekly sync, 2 the long
-# Ray how-to, 13 the one with things wider than a phone.
+# Ray how-to, 13 the one with things wider than a phone, 14 the packing list.
 VIEWS: dict[str, Callable[[Page], None]] = {
     "home": go("/"),
     "note": go("/n/1"),
@@ -95,6 +95,7 @@ VIEWS: dict[str, Callable[[Page], None]] = {
     "note-scrolled": scrolled("/n/2"),
     "note-raw": raw,
     "note-wide": go("/n/13"),
+    "note-lists": go("/n/14"),
     "edit": edit,
     "new": new,
     "filter": search("kubernetes"),

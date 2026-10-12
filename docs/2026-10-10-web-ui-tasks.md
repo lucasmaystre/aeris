@@ -225,6 +225,16 @@ From G.5 (2026-10-11):
   `middle-word-em: False`: no emphasis inside words, with `_` or `*`; `_word_` still works. Of the
   fixtures, only the new wide one renders differently. Bare URLs still aren't links.
 
+From H.1 (2026-10-12):
+
+- The typography plugin spaces list items 0.5em apart (36 px per line with its 1.75 line height),
+  close to the gap between paragraphs. Now 0.25em (32 px, like GitHub's), still more than the gap
+  between a wrapped item's lines, and a list sits 0.5em under the paragraph introducing it
+  ("In the bag:"). New fixture `14-packing-list.md`, gallery view `note-lists`.
+- Scrollbars always showing in Chrome on macOS come from the system setting ("Show scroll bars:
+  Automatic" with a mouse connected), not the app: measured 15 px with and without daisyUI's
+  `scrollbar-color`. Left alone.
+
 ## Phase A: Tooling
 
 - [x] A.1 UI sandbox: one command for a seeded dev server on the test branch (fixture notes, dev
@@ -280,6 +290,10 @@ button. Desktop stays pixel-identical.
   autocorrect in search; the placeholder and the login page fit as they are
 - [x] G.5 Check on a real phone (production), fix what turns up: the gap under the bar, long words,
   wide tables
+
+## Phase H: Polish
+
+- [x] H.1 Tighter lists: 0.25em between items, 0.5em after the paragraph that introduces a list
 
 ## Backlog
 

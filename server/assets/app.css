@@ -118,6 +118,17 @@
 .prose h3 {
   font-size: 1.125rem;
 }
+/* Lists: items close together (0.25em, like GitHub's), and a list close to the paragraph that
+   introduces it ("In the bag:"), 0.5em instead of the 1.25em between paragraphs. */
+.prose li {
+  margin-block: 0.25em;
+}
+.prose p:has(+ :is(ul, ol)) {
+  margin-bottom: 0.5em;
+}
+.prose p + :is(ul, ol) {
+  margin-top: 0.5em;
+}
 /* The first block sits right under the bar: the heading margins above override the plugin's own
    first-child reset. */
 .prose > :first-child {
