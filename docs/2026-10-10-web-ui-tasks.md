@@ -307,3 +307,13 @@ button. Desktop stays pixel-identical.
   and the phone editor; `:w` saves, `:q` cancels. Alternatives weighed: CodeMirror 6 with
   `@replit/codemirror-vim` (about 130 KB+, needs an esbuild bundle), Ace (about 180 KB), Monaco
   (MBs), and no code at all: Firenvim (real Neovim in any textarea) or `aeris edit ID`.
+- Offline PWA on iOS (researched 2026-10-13), in two steps; full offline editing or a native app
+  only if these aren't enough.
+  1. Offline reading: a service worker caches the app shell and every note's rendered page (htmx
+     fragments too), refreshed when online. The sidebar already holds every note's text
+     (`data-text`), so the list and exact search work offline; `ask` stays online-only.
+  2. Offline quick capture: new notes only (no conflicts), queued in IndexedDB and sent on launch
+     and on `online` (iOS has no Background Sync API); shown as plain text until synced. Server
+     side: a changes feed (`GET /api/changes?since=`, deletions included, on a write sequence, not
+     `updated_at`) and idempotent creates (a client UUID, so retries don't duplicate). Call
+     `navigator.storage.persist()`; home-screen PWAs keep their storage while used.
