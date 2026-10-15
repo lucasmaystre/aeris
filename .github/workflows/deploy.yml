@@ -35,4 +35,4 @@ jobs:
         run: npx --yes vercel@63.1.0 deploy --prod --token "${{ secrets.VERCEL_TOKEN }}"
 
       - name: Smoke test
-        run: curl --fail --silent --show-error https://aeris-five-silk.vercel.app/healthz
+        run: curl --fail --silent --show-error https://aeris.lum.li/healthz
